@@ -64,10 +64,11 @@ app.post('/api/auth/google', async (req, res) => {
     }
 
     const user = userRecord[0];
+    const isProfileCompleted = Boolean(user.age && user.phone);
 
     // Generate JWT
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, profileCompleted: isProfileCompleted },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
