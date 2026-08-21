@@ -19,7 +19,7 @@ export function LoginPage() {
   if (existingToken) {
     try {
       const decoded = jwtDecode<JwtPayload>(existingToken)
-      if (decoded.profileCompleted === false) {
+      if (!decoded.profileCompleted) {
         return <Navigate to="/complete-profile" replace />
       }
       
@@ -57,7 +57,7 @@ export function LoginPage() {
       })
 
       // Route based on profile completion and role
-      if (decoded.profileCompleted === false) {
+      if (!decoded.profileCompleted) {
         navigate('/complete-profile')
       } else if (decoded.role === 'DONOR') {
         navigate('/explore')
