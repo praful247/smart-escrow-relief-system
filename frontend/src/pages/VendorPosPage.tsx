@@ -52,36 +52,43 @@ export function VendorPosPage() {
   }, [token, navigate, toast])
 
   useEffect(() => {
-    // Initialize Scanner only if we don't have a result yet and scanner isn't already running
-    if (!scanResult && !scannerRef.current) {
-      scannerRef.current = new Html5QrcodeScanner(
+    let isMounted = true;
+    let scanner: Html5QrcodeScanner | null = null;
+
+    const startScanner = async () => {
+      // Small delay to ensure the div is painted and previous instances are fully cleared in StrictMode
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (!isMounted || scanResult || document.getElementById('qr-reader-scan-region')) return;
+
+      scanner = new Html5QrcodeScanner(
         "qr-reader",
         { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-      )
+        false
+      );
       
-      scannerRef.current.render(
+      scanner.render(
         (decodedText) => {
-          // On Success
-          setScanResult(decodedText)
-          if (scannerRef.current) {
-            scannerRef.current.clear()
-            scannerRef.current = null
+          if (isMounted) {
+            setScanResult(decodedText);
+            scanner?.clear().catch(console.error);
           }
         },
-        (_error) => {
-          // On Error (runs continuously on every frame, so we ignore it usually)
-        }
-      )
+        () => {}
+      );
+    };
+
+    if (!scanResult) {
+      startScanner();
     }
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error)
-        scannerRef.current = null
+      isMounted = false;
+      if (scanner) {
+        scanner.clear().catch(console.error);
       }
-    }
-  }, [scanResult])
+    };
+  }, [scanResult]);
 
   useEffect(() => {
     if (scanResult) {
@@ -103,7 +110,7 @@ export function VendorPosPage() {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
       
       const payload = {
-        voucherHash,
+        voucherHash: voucherHash.trim(),
         latitude,
         longitude
       }
@@ -179,7 +186,42 @@ export function VendorPosPage() {
             <CardContent className="p-0 flex-1 flex flex-col items-center justify-center bg-slate-950 min-h-[400px]">
               
               {!scanResult && !locationError && (
-                <div id="qr-reader" className="w-full max-w-sm overflow-hidden rounded-lg bg-black"></div>
+                <div className="w-full max-w-sm flex flex-col items-center gap-4">
+                  <div id="qr-reader" className="w-full overflow-hidden rounded-lg bg-black"></div>
+                  
+                  {/* Fallback for testing */}
+                  <div className="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Manual Override</p>
+                      <button 
+                        onClick={() => {
+                          const input = document.getElementById('manual-hash') as HTMLInputElement;
+                          if (input) input.value = 'f614ab7f93de0761478d8bf98c0d46fbadd047083d44dd7beb0a3f0db66cf4f6';
+                        }}
+                        className="text-[10px] bg-slate-800 text-slate-300 px-2 py-1 rounded hover:bg-slate-700 transition"
+                      >
+                        Auto-Fill Test Hash
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        id="manual-hash"
+                        placeholder="Paste Voucher Hash..."
+                        className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:border-emerald-500"
+                      />
+                      <Button 
+                        onClick={() => {
+                          const val = (document.getElementById('manual-hash') as HTMLInputElement)?.value;
+                          if (val) setScanResult(val.trim());
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                      >
+                        Simulate
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               )}
               
               {locationError && (

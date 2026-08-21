@@ -13,6 +13,9 @@ import { NgoDashboardPackages } from './pages/NgoDashboardPackages'
 import { NgoDashboard } from './pages/NgoDashboard'
 import { FieldIntakePage } from './pages/FieldIntakePage'
 import { VendorPosPage } from './pages/VendorPosPage'
+import DonorImpactPage from './pages/DonorImpactPage'
+import NgoAnalyticsPage from './pages/NgoAnalyticsPage'
+import AdminDashboardPage from './pages/AdminDashboardPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('cleartrust_jwt')
@@ -98,9 +101,27 @@ export default function App() {
             </ProtectedRoute>
           } />
           
+          <Route path="/ngo/analytics" element={
+            <ProtectedRoute>
+              <NgoAnalyticsPage />
+            </ProtectedRoute>
+          } />
+
           <Route path="/vendor/pos" element={
             <ProtectedRoute>
               <VendorPosPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/donor/impact" element={
+            <ProtectedRoute>
+              <DonorImpactPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminDashboardPage />
             </ProtectedRoute>
           } />
           

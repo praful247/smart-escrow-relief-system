@@ -22,6 +22,8 @@ export function CompleteProfilePage() {
   const [missionStatement, setMissionStatement] = useState('')
   const [storeName, setStoreName] = useState('')
   const [license, setLicense] = useState('')
+  const [selectedNgoId, setSelectedNgoId] = useState('')
+  const [verifiedNgos, setVerifiedNgos] = useState<any[]>([])
 
   const token = localStorage.getItem('cleartrust_jwt')
 
@@ -37,6 +39,24 @@ export function CompleteProfilePage() {
       } catch (e) {
         // ignore
       }
+
+      // Fetch NGOs for field workers
+      const fetchNgos = async () => {
+        try {
+          const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+          const res = await fetch(`${apiBaseUrl}/ngos/verified`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          if (res.ok) {
+            const data = await res.json()
+            setVerifiedNgos(data)
+            if (data.length > 0) setSelectedNgoId(data[0].id)
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      }
+      fetchNgos()
     }
   }, [token])
 
@@ -80,6 +100,21 @@ export function CompleteProfilePage() {
       
       if (data.token) {
         localStorage.setItem('cleartrust_jwt', data.token)
+      }
+
+      // If Field Worker, join NGO
+      if (role === 'FIELD_WORKER' && selectedNgoId) {
+        const joinRes = await fetch(`${apiBaseUrl}/field-workers/join`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.token || token}`
+          },
+          body: JSON.stringify({ ngoId: selectedNgoId })
+        })
+        if (!joinRes.ok) {
+          throw new Error('Failed to join NGO')
+        }
       }
 
       toast({
@@ -183,8 +218,25 @@ export function CompleteProfilePage() {
               )}
 
               {role === 'FIELD_WORKER' && (
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Your account will be provisioned as a field worker. Ensure your NGO admin has whitelisted your email.</p>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Select the verified NGO you are working with.</p>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Join NGO</label>
+                    <select 
+                      required 
+                      value={selectedNgoId} 
+                      onChange={e => setSelectedNgoId(e.target.value)} 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      {verifiedNgos.length === 0 ? (
+                        <option value="" disabled>No verified NGOs available</option>
+                      ) : (
+                        verifiedNgos.map(ngo => (
+                          <option key={ngo.id} value={ngo.id}>{ngo.name} ({ngo.registrationNumber})</option>
+                        ))
+                      )}
+                    </select>
+                  </div>
                 </div>
               )}
 

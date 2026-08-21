@@ -24,6 +24,13 @@ export const ngos = pgTable('ngos', {
   isVerified: boolean('is_verified').default(false).notNull(),
 });
 
+export const ngoWorkers = pgTable('ngo_workers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  ngoId: uuid('ngo_id').references(() => ngos.id).notNull(),
+  userId: uuid('user_id').references(() => users.id).unique().notNull(), // A worker belongs to one NGO at a time
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // 3. Disaster Zones (Strictly Linked to NGOs)
 export const disasterZones = pgTable('disaster_zones', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -67,8 +74,10 @@ export const qrVouchers = pgTable('qr_vouchers', {
   id: uuid('id').defaultRandom().primaryKey(),
   packageId: uuid('package_id').references(() => aidPackages.id),
   beneficiaryId: uuid('beneficiary_id').references(() => beneficiaries.id),
+  donorUserId: uuid('donor_user_id').references(() => users.id),
   razorpayOrderId: varchar('razorpay_order_id', { length: 255 }).notNull().unique(),
   voucherHash: varchar('voucher_hash', { length: 64 }).notNull().unique(),
   status: varchar('status', { length: 50 }).default('PENDING_PAYMENT').notNull(), // PENDING_PAYMENT, ISSUED, REDEEMED
   redeemedVendorId: uuid('redeemed_vendor_id').references(() => vendors.id),
+  txHash: varchar('tx_hash', { length: 66 }),
 });

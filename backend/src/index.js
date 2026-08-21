@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { authenticateJWT } from './middleware/authMiddleware.js';
 import { requireRole } from './middleware/roleMiddleware.js';
 import { db } from './db/index.js';
-import { users, qrVouchers, beneficiaries, ngos, disasterZones, aidPackages, vendors } from './db/schema.js';
+import { users, qrVouchers, beneficiaries, ngos, disasterZones, aidPackages, vendors, ngoWorkers } from './db/schema.js';
 import { generateSHA256, verifyRazorpaySignature } from './lib/crypto.js';
 import { calculateHaversineDistance } from './lib/geo.js';
 import { ethers } from 'ethers';
@@ -124,7 +124,7 @@ app.post('/api/payment/create-order', authenticateJWT, async (req, res) => {
     await db.insert(qrVouchers).values({
       packageId,
       beneficiaryId,
-      donorEmail: req.user.email,
+      donorUserId: req.user.id,
       razorpayOrderId: order.id,
       voucherHash,
       status: 'PENDING_PAYMENT'
@@ -159,6 +159,24 @@ app.post('/api/payment/verify', authenticateJWT, async (req, res) => {
   }
 
   try {
+    const voucherResult = await db.select().from(qrVouchers).where(eq(qrVouchers.razorpayOrderId, razorpay_order_id)).limit(1);
+    if (voucherResult.length === 0) return res.status(404).json({ error: 'Voucher not found' });
+    const voucher = voucherResult[0];
+
+    const packageResult = await db.select().from(aidPackages).where(eq(aidPackages.id, voucher.packageId)).limit(1);
+    const pkg = packageResult[0];
+
+    // Blockchain Execution: Issue voucher on-chain
+    const provider = new ethers.JsonRpcProvider(process.env.RAAS_RPC_URL);
+    const wallet = new ethers.Wallet(process.env.BACKEND_ADMIN_PRIVATE_KEY, provider);
+    const abi = ["function createVoucher(string memory _voucherHash, uint256 _amount) external"];
+    const contract = new ethers.Contract(process.env.ESCROW_CONTRACT_ADDRESS, abi, wallet);
+    
+    // Parse the price as Ether (1 INR = 1 token for simplicity)
+    const amountInWei = ethers.parseEther(pkg.priceInInr);
+    const tx = await contract.createVoucher(voucher.voucherHash, amountInWei);
+    await tx.wait();
+
     await db.update(qrVouchers)
       .set({
         razorpayPaymentId: razorpay_payment_id,
@@ -167,77 +185,13 @@ app.post('/api/payment/verify', authenticateJWT, async (req, res) => {
       })
       .where(eq(qrVouchers.razorpayOrderId, razorpay_order_id));
 
-    res.json({ success: true, message: 'Payment verified and voucher issued' });
+    res.json({ success: true, message: 'Payment verified and voucher issued on-chain' });
   } catch (error) {
     console.error('Verify Payment Error:', error);
     res.status(500).json({ error: 'Failed to verify payment' });
   }
 });
 
-// ==========================================
-// 4. Beneficiary Registration (Zero-Trust)
-// ==========================================
-app.post('/api/beneficiaries/register', requireRole('FIELD_WORKER'), async (req, res) => {
-  const { disasterZoneId, identityData, incomeEligibilityStatus } = req.body;
-  
-  if (!disasterZoneId) {
-    return res.status(400).json({ error: 'disasterZoneId is required' });
-  }
-
-  try {
-    // Voucher Assignment Pre-Check (Crucial)
-    // Find ONE voucher where status = 'ISSUED' AND beneficiaryId IS NULL
-    const availableVouchers = await db.select().from(qrVouchers)
-      .where(and(eq(qrVouchers.status, 'ISSUED'), isNull(qrVouchers.beneficiaryId)))
-      .limit(1);
-
-    if (availableVouchers.length === 0) {
-      return res.status(400).json({ error: 'No available pre-paid vouchers to assign.' });
-    }
-
-    const voucherToAssign = availableVouchers[0];
-
-    // Generate Zero-Trust Identity Hash
-    const proofOfHumanityHash = generateSHA256(JSON.stringify(identityData));
-
-    // Anti-Sybil Check
-    const existing = await db.select().from(beneficiaries).where(eq(beneficiaries.proofOfHumanityHash, proofOfHumanityHash));
-    
-    if (existing.length > 0) {
-      return res.status(409).json({ error: 'Beneficiary already registered (Hash Collision)' });
-    }
-
-    // Ensure disaster zone exists for testing
-    const zoneExists = await db.select().from(disasterZones).where(eq(disasterZones.id, disasterZoneId));
-    if (zoneExists.length === 0) {
-      await db.insert(disasterZones).values({
-        id: disasterZoneId,
-        name: 'Test Disaster Zone',
-        centerLatitude: '0.00000000',
-        centerLongitude: '0.00000000',
-        radiusKm: '10.00'
-      });
-    }
-
-    const inserted = await db.insert(beneficiaries).values({
-      disasterZoneId,
-      proofOfHumanityHash,
-      incomeEligibilityStatus: incomeEligibilityStatus || 'ELIGIBLE'
-    }).returning();
-    
-    const newBeneficiary = inserted[0];
-
-    // Update that specific voucher record
-    await db.update(qrVouchers)
-      .set({ beneficiaryId: newBeneficiary.id })
-      .where(eq(qrVouchers.id, voucherToAssign.id));
-
-    res.json({ success: true, beneficiary: newBeneficiary, voucherHash: voucherToAssign.voucherHash });
-  } catch (error) {
-    console.error('Beneficiary Registration Error:', error);
-    res.status(500).json({ error: 'Registration failed' });
-  }
-});
 
 // ==========================================
 // 5. User Profile Update
@@ -313,6 +267,24 @@ app.get('/api/ngos', async (req, res) => {
     res.json({ ngos: allNgos });
   } catch (error) {
     console.error('Fetch NGOs Error:', error);
+    res.status(500).json({ error: 'Failed to fetch NGOs' });
+  }
+});
+
+// Get all verified NGOs (for Dropdown in Field Worker onboarding)
+app.get('/api/ngos/verified', authenticateJWT, async (req, res) => {
+  try {
+    const verifiedNgos = await db.select({
+      id: ngos.id,
+      name: users.name,
+      registrationNumber: ngos.registrationNumber
+    })
+    .from(ngos)
+    .innerJoin(users, eq(ngos.userId, users.id))
+    .where(eq(ngos.isVerified, true));
+    
+    res.json(verifiedNgos);
+  } catch (error) {
     res.status(500).json({ error: 'Failed to fetch NGOs' });
   }
 });
@@ -404,9 +376,14 @@ app.post('/api/vouchers/redeem', requireRole('VENDOR'), async (req, res) => {
   }
 
   try {
+    console.log(`[Redeem API] Incoming voucherHash from Vendor: "${voucherHash}"`);
+    
     // Look up the voucher
     const voucherResult = await db.select().from(qrVouchers).where(eq(qrVouchers.voucherHash, voucherHash)).limit(1);
-    if (voucherResult.length === 0) return res.status(404).json({ error: 'Voucher not found' });
+    if (voucherResult.length === 0) {
+      console.log(`[Redeem API] Voucher not found in DB!`);
+      return res.status(404).json({ error: 'Voucher not found' });
+    }
     
     const voucher = voucherResult[0];
     if (voucher.status !== 'ISSUED') {
@@ -439,21 +416,251 @@ app.post('/api/vouchers/redeem', requireRole('VENDOR'), async (req, res) => {
     const wallet = new ethers.Wallet(process.env.BACKEND_ADMIN_PRIVATE_KEY, provider);
     
     // Minimal ABI for the escrow contract
-    const abi = ["function redeemVoucher(string voucherHash) external"];
+    const abi = ["function redeemVoucher(string voucherHash, address vendor) external"];
     const contract = new ethers.Contract(process.env.ESCROW_CONTRACT_ADDRESS, abi, wallet);
     
-    const tx = await contract.redeemVoucher(voucherHash);
+    const tx = await contract.redeemVoucher(voucherHash, vendor.walletAddress);
     const receipt = await tx.wait(); // Wait for confirmation
 
     // Update DB
     await db.update(qrVouchers)
-      .set({ status: 'REDEEMED', redeemedVendorId: vendor.id })
+      .set({ status: 'REDEEMED', redeemedVendorId: vendor.id, txHash: receipt.hash })
       .where(eq(qrVouchers.id, voucher.id));
 
     res.json({ success: true, transactionHash: receipt.hash, message: 'Voucher redeemed successfully on-chain' });
   } catch (error) {
     console.error('Voucher Redeem Error:', error);
     res.status(500).json({ error: 'Failed to redeem voucher on-chain', details: error.message });
+  }
+});
+
+// ==========================================
+// Phase 7: Transparency Dashboards
+// ==========================================
+
+app.get('/api/donor/impact', authenticateJWT, requireRole('DONOR'), async (req, res) => {
+  try {
+    const impactData = await db.select({
+      voucher: qrVouchers,
+      package: aidPackages,
+      ngo: ngos,
+      vendor: vendors,
+    })
+    .from(qrVouchers)
+    .leftJoin(aidPackages, eq(qrVouchers.packageId, aidPackages.id))
+    .leftJoin(ngos, eq(aidPackages.ngoId, ngos.id))
+    .leftJoin(vendors, eq(qrVouchers.redeemedVendorId, vendors.id))
+    .where(eq(qrVouchers.donorUserId, req.user.id));
+
+    res.json({ impact: impactData });
+  } catch (error) {
+    console.error('Donor Impact Error:', error);
+    res.status(500).json({ error: 'Failed to fetch impact data' });
+  }
+});
+
+app.get('/api/ngo/analytics', authenticateJWT, requireRole('NGO'), async (req, res) => {
+  try {
+    const ngoResult = await db.select().from(ngos).where(eq(ngos.userId, req.user.id)).limit(1);
+    if (ngoResult.length === 0) return res.status(404).json({ error: 'NGO profile not found' });
+    const ngoId = ngoResult[0].id;
+
+    const analyticsData = await db.select({
+      voucher: qrVouchers,
+      package: aidPackages,
+      vendor: vendors,
+    })
+    .from(qrVouchers)
+    .innerJoin(aidPackages, eq(qrVouchers.packageId, aidPackages.id))
+    .leftJoin(vendors, eq(qrVouchers.redeemedVendorId, vendors.id))
+    .where(eq(aidPackages.ngoId, ngoId));
+
+    // Aggregate Data
+    let totalFundsRaised = 0;
+    let vouchersIssued = 0;
+    let vouchersRedeemed = 0;
+    const vendorRedemptions = [];
+
+    for (const row of analyticsData) {
+      const price = Number(row.package.priceInInr);
+      totalFundsRaised += price;
+
+      if (row.voucher.status === 'ISSUED' || row.voucher.status === 'REDEEMED') {
+        vouchersIssued++;
+      }
+      if (row.voucher.status === 'REDEEMED') {
+        vouchersRedeemed++;
+        if (row.vendor) {
+          vendorRedemptions.push({
+            vendorName: row.vendor.storeName,
+            latitude: Number(row.vendor.latitude),
+            longitude: Number(row.vendor.longitude),
+            amount: price,
+            txHash: row.voucher.txHash
+          });
+        }
+      }
+    }
+
+    res.json({
+      totalFundsRaised,
+      vouchersIssued,
+      vouchersRedeemed,
+      vendorRedemptions
+    });
+  } catch (error) {
+    console.error('NGO Analytics Error:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics data' });
+  }
+});
+
+// ==========================================
+// Phase 8: Admin Panel & Field Worker Linkage
+// ==========================================
+
+// Field Worker: Join an NGO
+app.post('/api/field-workers/join', authenticateJWT, requireRole('FIELD_WORKER'), async (req, res) => {
+  const { ngoId } = req.body;
+  if (!ngoId) return res.status(400).json({ error: 'Missing ngoId' });
+
+  try {
+    // Check if worker is already linked to this or another NGO
+    const existing = await db.select().from(ngoWorkers).where(eq(ngoWorkers.userId, req.user.id)).limit(1);
+    
+    if (existing.length > 0) {
+      await db.update(ngoWorkers).set({ ngoId }).where(eq(ngoWorkers.userId, req.user.id));
+    } else {
+      await db.insert(ngoWorkers).values({ userId: req.user.id, ngoId });
+    }
+    
+    res.json({ success: true, message: 'Successfully joined NGO' });
+  } catch (error) {
+    console.error('Field Worker Join Error:', error);
+    res.status(500).json({ error: 'Failed to join NGO' });
+  }
+});
+
+// Admin: Get all NGOs
+app.get('/api/admin/ngos', authenticateJWT, requireRole('ADMIN'), async (req, res) => {
+  try {
+    const allNgos = await db.select({
+      id: ngos.id,
+      name: users.name, // users.name instead of ngos.name
+      registrationNumber: ngos.registrationNumber,
+      isVerified: ngos.isVerified,
+      createdAt: users.createdAt, // Users table has createdAt, but wait, maybe ngos has createdAt? No, schema doesn't have it for ngos. I'll use users.createdAt.
+      user: users
+    })
+    .from(ngos)
+    .leftJoin(users, eq(ngos.userId, users.id));
+    
+    res.json(allNgos);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch NGOs' });
+  }
+});
+
+// Admin: Verify NGO
+app.post('/api/admin/ngos/verify', authenticateJWT, requireRole('ADMIN'), async (req, res) => {
+  const { ngoId, isVerified } = req.body;
+  if (!ngoId) return res.status(400).json({ error: 'Missing ngoId' });
+
+  try {
+    await db.update(ngos).set({ isVerified: Boolean(isVerified) }).where(eq(ngos.id, ngoId));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update NGO verification status' });
+  }
+});
+
+// Admin: Stats
+app.get('/api/admin/stats', authenticateJWT, requireRole('ADMIN'), async (req, res) => {
+  try {
+    // We'll just do basic row counts for a quick dashboard
+    const usersCount = (await db.select().from(users)).length;
+    const ngosCount = (await db.select().from(ngos)).length;
+    const vouchersCount = (await db.select().from(qrVouchers)).length;
+    const vendorsCount = (await db.select().from(vendors)).length;
+
+    res.json({ usersCount, ngosCount, vouchersCount, vendorsCount });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch admin stats' });
+  }
+});
+
+// Field Worker: Register Beneficiary
+app.post('/api/beneficiaries/register', authenticateJWT, requireRole('FIELD_WORKER'), async (req, res) => {
+  const { identityData } = req.body;
+  if (!identityData) return res.status(400).json({ error: 'Missing identity data' });
+
+  try {
+    // 1. Get worker's linked NGO
+    const workerLink = await db.select().from(ngoWorkers).where(eq(ngoWorkers.userId, req.user.id)).limit(1);
+    if (workerLink.length === 0) return res.status(403).json({ error: 'You are not linked to any NGO. Join an NGO first.' });
+    const ngoId = workerLink[0].ngoId;
+
+    // 2. Find an available voucher for this NGO's packages
+    // Join qrVouchers and aidPackages where aidPackages.ngoId = ngoId and qrVouchers.status = 'PENDING_PAYMENT'
+    const availableVoucherRows = await db.select({
+      voucher: qrVouchers
+    })
+    .from(qrVouchers)
+    .innerJoin(aidPackages, eq(qrVouchers.packageId, aidPackages.id))
+    .where(and(
+      eq(aidPackages.ngoId, ngoId),
+      eq(qrVouchers.status, 'ISSUED'),
+      isNull(qrVouchers.beneficiaryId)
+    ))
+    .limit(1);
+
+    if (availableVoucherRows.length === 0) {
+      return res.status(400).json({ error: 'No funded vouchers available for this NGO. Please wait for more donations.' });
+    }
+    const voucher = availableVoucherRows[0].voucher;
+
+    // 3. Create Beneficiary
+    // Need a disasterZoneId. We can fetch any disaster zone for this NGO.
+    const zones = await db.select().from(disasterZones).where(eq(disasterZones.ngoId, ngoId)).limit(1);
+    let disasterZoneId = null;
+    if (zones.length > 0) disasterZoneId = zones[0].id;
+    // If no zone exists, we could create one or leave it null. Our schema says disasterZoneId is notNull.
+    // Let's create a generic zone if none exists for the NGO to satisfy the FK.
+    if (!disasterZoneId) {
+      const insertedZone = await db.insert(disasterZones).values({
+        ngoId,
+        name: 'General Aid Zone',
+        centerLatitude: '0.00000000',
+        centerLongitude: '0.00000000',
+        radiusKm: '100.00'
+      }).returning();
+      disasterZoneId = insertedZone[0].id;
+    }
+
+    const proofOfHumanityHash = generateSHA256(JSON.stringify(identityData));
+
+    // Anti-Sybil Check
+    const existing = await db.select().from(beneficiaries).where(eq(beneficiaries.proofOfHumanityHash, proofOfHumanityHash));
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'Beneficiary already registered (Hash Collision)' });
+    }
+
+    const insertedBeneficiary = await db.insert(beneficiaries).values({
+      disasterZoneId,
+      identityData: identityData,
+      proofOfHumanityHash,
+      incomeEligibilityStatus: 'VERIFIED'
+    }).returning();
+    const beneficiaryId = insertedBeneficiary[0].id;
+
+    // 4. Update Voucher
+    await db.update(qrVouchers)
+      .set({ beneficiaryId, status: 'ISSUED' })
+      .where(eq(qrVouchers.id, voucher.id));
+
+    res.json({ success: true, voucherHash: voucher.voucherHash });
+  } catch (error) {
+    console.error('Register Beneficiary Error:', error);
+    res.status(500).json({ error: 'Failed to register beneficiary' });
   }
 });
 

@@ -35,7 +35,6 @@ export function FieldIntakePage() {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
       
       const payload = {
-        disasterZoneId: '11111111-1111-1111-1111-111111111111', // Valid UUID placeholder
         identityData: {
           name: victimName,
           age: Number(age),
@@ -65,8 +64,8 @@ export function FieldIntakePage() {
         description: "Beneficiary registered securely on-chain.",
       })
       
-      if (data.beneficiary && data.beneficiary.proofOfHumanityHash) {
-        setSuccessHash(data.beneficiary.proofOfHumanityHash)
+      if (data.voucherHash) {
+        setSuccessHash(data.voucherHash)
       } else {
         throw new Error("Missing voucher hash from server response")
       }
