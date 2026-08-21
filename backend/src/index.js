@@ -346,6 +346,19 @@ app.post('/api/ngo/packages', requireRole('NGO'), async (req, res) => {
   }
 });
 
+app.get('/api/ngo/packages', authenticateJWT, requireRole('NGO'), async (req, res) => {
+  try {
+    const ngoResult = await db.select().from(ngos).where(eq(ngos.userId, req.user.id)).limit(1);
+    if (ngoResult.length === 0) return res.status(403).json({ error: 'NGO profile not found' });
+    
+    const packages = await db.select().from(aidPackages).where(eq(aidPackages.ngoId, ngoResult[0].id));
+    res.json({ packages });
+  } catch (error) {
+    console.error('Fetch Packages Error:', error);
+    res.status(500).json({ error: 'Failed to fetch packages' });
+  }
+});
+
 app.delete('/api/ngo/packages/:id', requireRole('NGO'), async (req, res) => {
   try {
     const packageId = req.params.id;
