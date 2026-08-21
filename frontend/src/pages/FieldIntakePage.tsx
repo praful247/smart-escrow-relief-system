@@ -34,7 +34,7 @@ export function FieldIntakePage() {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
       
       const payload = {
-        disasterZoneId: 'default_zone_001', // Placeholder for hackathon
+        disasterZoneId: '11111111-1111-1111-1111-111111111111', // Valid UUID placeholder
         identityData: {
           name: victimName,
           age: Number(age),
