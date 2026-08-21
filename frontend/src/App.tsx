@@ -11,6 +11,7 @@ import { ExploreNgosPage } from './pages/ExploreNgosPage'
 import { NgoDetailPage } from './pages/NgoDetailPage'
 import { NgoDashboardPackages } from './pages/NgoDashboardPackages'
 import { NgoDashboard } from './pages/NgoDashboard'
+import { FieldIntakePage } from './pages/FieldIntakePage'
 import { VendorPos } from './pages/VendorPos'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -87,7 +88,7 @@ export default function App() {
 
           <Route path="/ngo/field-intake" element={
             <ProtectedRoute>
-              <NgoDashboard />
+              <FieldIntakePage />
             </ProtectedRoute>
           } />
 
