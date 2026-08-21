@@ -97,7 +97,10 @@ app.post('/api/payment/create-order', authenticateJWT, async (req, res) => {
     const pkg = pkgResult[0];
     let amountInInr = Number(pkg.priceInInr);
     
-    if (pkg.isCustomAmountAllowed && customAmount) {
+    if (customAmount) {
+      if (!pkg.isCustomAmountAllowed) {
+        return res.status(403).json({ error: 'Forbidden: Custom amount is not allowed for this package' });
+      }
       amountInInr = Number(customAmount);
     }
     
@@ -203,7 +206,7 @@ app.post('/api/beneficiaries/register', authenticateJWT, async (req, res) => {
 // 5. User Profile Update
 // ==========================================
 app.put('/api/users/profile', authenticateJWT, async (req, res) => {
-  const { role, age, gender, phone } = req.body;
+  const { role, age, gender, phone, registrationNumber, description, missionStatement } = req.body;
   
   try {
     const updated = await db.update(users)
@@ -213,6 +216,25 @@ app.put('/api/users/profile', authenticateJWT, async (req, res) => {
       
     if (updated.length === 0) {
       return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (role === 'NGO' && registrationNumber) {
+      const existingNgo = await db.select().from(ngos).where(eq(ngos.userId, req.user.id));
+      if (existingNgo.length === 0) {
+        await db.insert(ngos).values({
+          userId: req.user.id,
+          registrationNumber,
+          description,
+          missionStatement,
+          isVerified: false
+        });
+      } else {
+        await db.update(ngos).set({
+          registrationNumber,
+          description,
+          missionStatement
+        }).where(eq(ngos.userId, req.user.id));
+      }
     }
     
     const user = updated[0];
