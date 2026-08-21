@@ -178,7 +178,23 @@ app.post('/api/payment/verify', authenticateJWT, async (req, res) => {
 app.post('/api/beneficiaries/register', requireRole('FIELD_WORKER'), async (req, res) => {
   const { disasterZoneId, identityData, incomeEligibilityStatus } = req.body;
   
+  if (!disasterZoneId) {
+    return res.status(400).json({ error: 'disasterZoneId is required' });
+  }
+
   try {
+    // Voucher Assignment Pre-Check (Crucial)
+    // Find ONE voucher where status = 'ISSUED' AND beneficiaryId IS NULL
+    const availableVouchers = await db.select().from(qrVouchers)
+      .where(and(eq(qrVouchers.status, 'ISSUED'), isNull(qrVouchers.beneficiaryId)))
+      .limit(1);
+
+    if (availableVouchers.length === 0) {
+      return res.status(400).json({ error: 'No available pre-paid vouchers to assign.' });
+    }
+
+    const voucherToAssign = availableVouchers[0];
+
     // Generate Zero-Trust Identity Hash
     const proofOfHumanityHash = generateSHA256(JSON.stringify(identityData));
 
@@ -196,18 +212,6 @@ app.post('/api/beneficiaries/register', requireRole('FIELD_WORKER'), async (req,
     }).returning();
     
     const newBeneficiary = inserted[0];
-
-    // Voucher Assignment Logic (Crucial)
-    // Find ONE voucher where status = 'ISSUED' AND beneficiaryId IS NULL
-    const availableVouchers = await db.select().from(qrVouchers)
-      .where(and(eq(qrVouchers.status, 'ISSUED'), isNull(qrVouchers.beneficiaryId)))
-      .limit(1);
-
-    if (availableVouchers.length === 0) {
-      return res.json({ success: true, beneficiary: newBeneficiary, error: 'No available vouchers to assign' });
-    }
-
-    const voucherToAssign = availableVouchers[0];
 
     // Update that specific voucher record
     await db.update(qrVouchers)
