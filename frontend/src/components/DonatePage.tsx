@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 // Extended Window interface for Razorpay
 declare global {
@@ -40,11 +40,10 @@ const MOCK_PACKAGES: AidPackage[] = [
 ]
 
 interface DonatePageProps {
-  onBack: () => void
   token: string | null
 }
 
-export function DonatePage({ onBack, token }: DonatePageProps) {
+export function DonatePage({ token }: DonatePageProps) {
   const { toast } = useToast()
   const [loadingPackageId, setLoadingPackageId] = useState<string | null>(null)
 
@@ -149,9 +148,6 @@ export function DonatePage({ onBack, token }: DonatePageProps) {
   return (
     <div className="max-w-6xl w-full">
       <div className="flex items-center gap-4 mb-8">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Donor Portal</h2>
           <p className="text-muted-foreground mt-1">Select an aid package to fund. Your donation generates a traceable voucher for a verified beneficiary.</p>
