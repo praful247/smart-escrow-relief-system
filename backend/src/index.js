@@ -205,6 +205,18 @@ app.post('/api/beneficiaries/register', requireRole('FIELD_WORKER'), async (req,
       return res.status(409).json({ error: 'Beneficiary already registered (Hash Collision)' });
     }
 
+    // Ensure disaster zone exists for testing
+    const zoneExists = await db.select().from(disasterZones).where(eq(disasterZones.id, disasterZoneId));
+    if (zoneExists.length === 0) {
+      await db.insert(disasterZones).values({
+        id: disasterZoneId,
+        name: 'Test Disaster Zone',
+        centerLatitude: '0.00000000',
+        centerLongitude: '0.00000000',
+        radiusKm: '10.00'
+      });
+    }
+
     const inserted = await db.insert(beneficiaries).values({
       disasterZoneId,
       proofOfHumanityHash,
