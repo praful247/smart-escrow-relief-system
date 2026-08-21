@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,37 +10,95 @@ export function CompleteProfilePage() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  
+  // State for form fields
+  const [role, setRole] = useState('DONOR')
+  const [age, setAge] = useState('')
+  const [gender, setGender] = useState('PREFER_NOT_TO_SAY')
+  const [phone, setPhone] = useState('')
+  const [orgName, setOrgName] = useState('')
+  const [regNo, setRegNo] = useState('')
+  const [storeName, setStoreName] = useState('')
+  const [license, setLicense] = useState('')
 
-  // In a real app we might fetch user role or determine it from the JWT
   const token = localStorage.getItem('cleartrust_jwt')
-  let role = 'DONOR'
-  if (token) {
-    try {
-      role = jwtDecode<{role: string}>(token).role
-    } catch (e) {
-      // ignore
+
+  // We check if they already have a role encoded in JWT. If so, they might just be missing fields.
+  // But the prompt says "add a Role Selection dropdown", so we let them choose the role to complete the profile.
+  useEffect(() => {
+    if (token) {
+      try {
+        const decoded = jwtDecode<{role: string}>(token)
+        if (decoded.role) {
+          setRole(decoded.role)
+        }
+      } catch (e) {
+        // ignore
+      }
     }
-  }
+  }, [token])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     
-    // Mocking an API call to complete the profile
-    setTimeout(() => {
-      setLoading(false)
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+      
+      // Construct payload based on selected role
+      const payload: any = { role, gender }
+      if (role === 'DONOR') {
+        payload.age = parseInt(age, 10)
+        payload.phone = phone
+      } else if (role === 'NGO') {
+        payload.organizationName = orgName
+        payload.registrationNumber = regNo
+      } else if (role === 'VENDOR') {
+        payload.storeName = storeName
+        payload.businessLicense = license
+      }
+
+      const res = await fetch(`${apiBaseUrl}/users/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Failed to update profile')
+      }
+
+      const data = await res.json()
+      
+      if (data.token) {
+        localStorage.setItem('cleartrust_jwt', data.token)
+      }
+
       toast({
         title: "Profile Completed",
         description: "Your profile has been updated successfully.",
       })
       
-      // In a real scenario, the backend would issue a new JWT with profileCompleted: true
-      // Or we just redirect them based on their role
+      // Route based on role
       if (role === 'DONOR') navigate('/explore')
       else if (role === 'NGO') navigate('/ngo/dashboard')
       else if (role === 'VENDOR') navigate('/vendor/pos')
       else navigate('/explore')
-    }, 1500)
+      
+    } catch (err: any) {
+      console.error(err)
+      toast({
+        title: "Profile Update Failed",
+        description: err.message || "An error occurred while updating your profile.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -51,21 +109,48 @@ export function CompleteProfilePage() {
             <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-4" />
             <CardTitle className="text-2xl font-semibold">Complete Your Profile</CardTitle>
             <CardDescription>
-              We need a few more details before you can access the {role} dashboard.
+              We need a few more details before you can access the dashboard.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">I am a...</label>
+                <select 
+                  value={role} 
+                  onChange={(e) => setRole(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="DONOR">Donor</option>
+                  <option value="NGO">NGO Field Worker</option>
+                  <option value="VENDOR">Vendor</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Gender</label>
+                <select 
+                  value={gender} 
+                  onChange={(e) => setGender(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
               {role === 'DONOR' && (
                 <>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Age</label>
-                    <input type="number" required min="18" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="e.g. 25" />
+                    <input type="number" required min="18" value={age} onChange={e => setAge(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="e.g. 25" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Phone Number</label>
-                    <input type="tel" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="+1 (555) 000-0000" />
+                    <input type="tel" required value={phone} onChange={e => setPhone(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="+1 (555) 000-0000" />
                   </div>
                 </>
               )}
@@ -74,11 +159,11 @@ export function CompleteProfilePage() {
                 <>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Organization Name</label>
-                    <input type="text" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="e.g. Global Relief Fund" />
+                    <input type="text" required value={orgName} onChange={e => setOrgName(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="e.g. Global Relief Fund" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Registration Number</label>
-                    <input type="text" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Govt. Reg No." />
+                    <input type="text" required value={regNo} onChange={e => setRegNo(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Govt. Reg No." />
                   </div>
                 </>
               )}
@@ -87,11 +172,11 @@ export function CompleteProfilePage() {
                 <>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Store Name</label>
-                    <input type="text" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="e.g. City Supermarket" />
+                    <input type="text" required value={storeName} onChange={e => setStoreName(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="e.g. City Supermarket" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Business License</label>
-                    <input type="text" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="License Number" />
+                    <input type="text" required value={license} onChange={e => setLicense(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="License Number" />
                   </div>
                 </>
               )}
