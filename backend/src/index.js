@@ -10,8 +10,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { authenticateJWT } from './middleware/authMiddleware.js';
 import { requireRole } from './middleware/roleMiddleware.js';
 import { db } from './db/index.js';
-import { users, qrVouchers, beneficiaries, ngos, disasterZones, aidPackages } from './db/schema.js';
+import { users, qrVouchers, beneficiaries, ngos, disasterZones, aidPackages, vendors } from './db/schema.js';
 import { generateSHA256, verifyRazorpaySignature } from './lib/crypto.js';
+import { calculateHaversineDistance } from './lib/geo.js';
+import { ethers } from 'ethers';
 
 dotenv.config();
 
@@ -388,6 +390,70 @@ app.delete('/api/ngo/packages/:id', requireRole('NGO'), async (req, res) => {
   } catch (error) {
     console.error('Delete Package Error:', error);
     res.status(500).json({ error: 'Failed to delete package' });
+  }
+});
+
+// ==========================================
+// 8. On-Chain Escrow Settlement API
+// ==========================================
+app.post('/api/vouchers/redeem', requireRole('VENDOR'), async (req, res) => {
+  const { voucherHash, latitude, longitude } = req.body;
+  
+  if (!voucherHash || latitude === undefined || longitude === undefined) {
+    return res.status(400).json({ error: 'Missing voucherHash, latitude, or longitude' });
+  }
+
+  try {
+    // Look up the voucher
+    const voucherResult = await db.select().from(qrVouchers).where(eq(qrVouchers.voucherHash, voucherHash)).limit(1);
+    if (voucherResult.length === 0) return res.status(404).json({ error: 'Voucher not found' });
+    
+    const voucher = voucherResult[0];
+    if (voucher.status !== 'ISSUED') {
+      return res.status(400).json({ error: 'Voucher is not in ISSUED status' });
+    }
+
+    // Look up the vendor
+    const vendorResult = await db.select().from(vendors).where(eq(vendors.userId, req.user.id)).limit(1);
+    if (vendorResult.length === 0) return res.status(403).json({ error: 'Vendor profile not found' });
+    
+    const vendor = vendorResult[0];
+
+    // Geofencing
+    if (vendor.disasterZoneId) {
+      const zoneResult = await db.select().from(disasterZones).where(eq(disasterZones.id, vendor.disasterZoneId)).limit(1);
+      if (zoneResult.length > 0) {
+        const zone = zoneResult[0];
+        const distance = calculateHaversineDistance(
+          Number(latitude), Number(longitude),
+          Number(zone.centerLatitude), Number(zone.centerLongitude)
+        );
+        if (distance > Number(zone.radiusKm)) {
+          return res.status(403).json({ error: 'Vendor is outside the authorized disaster zone' });
+        }
+      }
+    }
+
+    // Blockchain Execution
+    const provider = new ethers.JsonRpcProvider(process.env.RAAS_RPC_URL);
+    const wallet = new ethers.Wallet(process.env.BACKEND_ADMIN_PRIVATE_KEY, provider);
+    
+    // Minimal ABI for the escrow contract
+    const abi = ["function redeemVoucher(string voucherHash) external"];
+    const contract = new ethers.Contract(process.env.ESCROW_CONTRACT_ADDRESS, abi, wallet);
+    
+    const tx = await contract.redeemVoucher(voucherHash);
+    const receipt = await tx.wait(); // Wait for confirmation
+
+    // Update DB
+    await db.update(qrVouchers)
+      .set({ status: 'REDEEMED', redeemedVendorId: vendor.id })
+      .where(eq(qrVouchers.id, voucher.id));
+
+    res.json({ success: true, transactionHash: receipt.hash, message: 'Voucher redeemed successfully on-chain' });
+  } catch (error) {
+    console.error('Voucher Redeem Error:', error);
+    res.status(500).json({ error: 'Failed to redeem voucher on-chain', details: error.message });
   }
 });
 
