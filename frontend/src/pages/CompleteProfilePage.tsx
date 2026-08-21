@@ -18,6 +18,8 @@ export function CompleteProfilePage() {
   const [phone, setPhone] = useState('')
   const [orgName, setOrgName] = useState('')
   const [regNo, setRegNo] = useState('')
+  const [description, setDescription] = useState('')
+  const [missionStatement, setMissionStatement] = useState('')
   const [storeName, setStoreName] = useState('')
   const [license, setLicense] = useState('')
 
@@ -53,6 +55,8 @@ export function CompleteProfilePage() {
       } else if (role === 'NGO') {
         payload.organizationName = orgName
         payload.registrationNumber = regNo
+        payload.description = description
+        payload.missionStatement = missionStatement
       } else if (role === 'VENDOR') {
         payload.storeName = storeName
         payload.businessLicense = license
@@ -86,6 +90,7 @@ export function CompleteProfilePage() {
       // Route based on role
       if (role === 'DONOR') navigate('/explore')
       else if (role === 'NGO') navigate('/ngo/dashboard')
+      else if (role === 'FIELD_WORKER') navigate('/ngo/field-intake')
       else if (role === 'VENDOR') navigate('/vendor/pos')
       else navigate('/explore')
       
@@ -123,7 +128,8 @@ export function CompleteProfilePage() {
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   <option value="DONOR">Donor</option>
-                  <option value="NGO">NGO Field Worker</option>
+                  <option value="NGO">NGO Organization</option>
+                  <option value="FIELD_WORKER">NGO Field Worker</option>
                   <option value="VENDOR">Vendor</option>
                 </select>
               </div>
@@ -165,7 +171,21 @@ export function CompleteProfilePage() {
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Registration Number</label>
                     <input type="text" required value={regNo} onChange={e => setRegNo(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Govt. Reg No." />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
+                    <textarea required value={description} onChange={e => setDescription(e.target.value)} className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Describe your NGO's purpose..." />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Mission Statement</label>
+                    <textarea required value={missionStatement} onChange={e => setMissionStatement(e.target.value)} className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Your core mission statement..." />
+                  </div>
                 </>
+              )}
+
+              {role === 'FIELD_WORKER' && (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Your account will be provisioned as a field worker. Ensure your NGO admin has whitelisted your email.</p>
+                </div>
               )}
 
               {role === 'VENDOR' && (

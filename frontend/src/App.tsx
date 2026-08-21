@@ -85,6 +85,12 @@ export default function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/ngo/field-intake" element={
+            <ProtectedRoute>
+              <NgoDashboard />
+            </ProtectedRoute>
+          } />
+
           <Route path="/ngo/packages" element={
             <ProtectedRoute>
               <NgoDashboardPackages />

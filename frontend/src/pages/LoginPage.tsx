@@ -25,6 +25,7 @@ export function LoginPage() {
       
       if (decoded.role === 'DONOR') return <Navigate to="/explore" replace />
       if (decoded.role === 'NGO') return <Navigate to="/ngo/dashboard" replace />
+      if (decoded.role === 'FIELD_WORKER') return <Navigate to="/ngo/field-intake" replace />
       if (decoded.role === 'VENDOR') return <Navigate to="/vendor/pos" replace />
     } catch (e) {
       // Invalid token, continue to login page
@@ -63,6 +64,8 @@ export function LoginPage() {
         navigate('/explore')
       } else if (decoded.role === 'NGO') {
         navigate('/ngo/dashboard')
+      } else if (decoded.role === 'FIELD_WORKER') {
+        navigate('/ngo/field-intake')
       } else if (decoded.role === 'VENDOR') {
         navigate('/vendor/pos')
       } else {
