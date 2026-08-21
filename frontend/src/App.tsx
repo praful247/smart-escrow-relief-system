@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Toaster } from '@/components/ui/toaster'
 import { LogOut, ShieldCheck, HeartHandshake, MapPin } from 'lucide-react'
+import { DonatePage } from './components/DonatePage'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [currentView, setCurrentView] = useState<'home' | 'donate'>('home')
   const { toast } = useToast()
 
   useEffect(() => {
@@ -52,6 +54,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('cleartrust_jwt')
     setIsAuthenticated(false)
+    setCurrentView('home')
     toast({
       title: "Logged Out",
       description: "You have been securely logged out.",
@@ -114,50 +117,54 @@ export default function App() {
             </Card>
           </div>
         ) : (
-          <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="col-span-full mb-8">
-              <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
-              <p className="text-muted-foreground mt-2">
-                You are securely authenticated. Active JWT token is stored in your session.
-              </p>
+          currentView === 'home' ? (
+            <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="col-span-full mb-8">
+                <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
+                <p className="text-muted-foreground mt-2">
+                  You are securely authenticated. Active JWT token is stored in your session.
+                </p>
+              </div>
+              
+              <Card className="shadow-lg border-slate-200 dark:border-slate-800 transition-all hover:shadow-xl">
+                <CardHeader>
+                  <HeartHandshake className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle>Donor Portal</CardTitle>
+                  <CardDescription>Fund targeted aid packages</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-slate-500 mb-6">Browse and fund active disaster relief packages for verified beneficiaries.</p>
+                  <Button className="w-full" onClick={() => setCurrentView('donate')}>Explore Packages</Button>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-lg border-slate-200 dark:border-slate-800 transition-all hover:shadow-xl">
+                <CardHeader>
+                  <MapPin className="h-10 w-10 text-emerald-500 mb-2" />
+                  <CardTitle>Field Intake</CardTitle>
+                  <CardDescription>Register beneficiaries</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-slate-500 mb-6">Onboard beneficiaries with Zero-Trust identity and issue QR vouchers.</p>
+                  <Button variant="outline" className="w-full text-emerald-600 border-emerald-200 hover:bg-emerald-50">Open Scanner</Button>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-lg border-slate-200 dark:border-slate-800 transition-all hover:shadow-xl">
+                <CardHeader>
+                  <ShieldCheck className="h-10 w-10 text-blue-500 mb-2" />
+                  <CardTitle>Vendor POS</CardTitle>
+                  <CardDescription>Redeem aid vouchers</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-slate-500 mb-6">Scan beneficiary QR vouchers for real-time on-chain settlement.</p>
+                  <Button variant="outline" className="w-full text-blue-600 border-blue-200 hover:bg-blue-50">Launch POS</Button>
+                </CardContent>
+              </Card>
             </div>
-            
-            <Card className="shadow-lg border-slate-200 dark:border-slate-800 transition-all hover:shadow-xl">
-              <CardHeader>
-                <HeartHandshake className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Donor Portal</CardTitle>
-                <CardDescription>Fund targeted aid packages</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-500 mb-6">Browse and fund active disaster relief packages for verified beneficiaries.</p>
-                <Button className="w-full">Explore Packages</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg border-slate-200 dark:border-slate-800 transition-all hover:shadow-xl">
-              <CardHeader>
-                <MapPin className="h-10 w-10 text-emerald-500 mb-2" />
-                <CardTitle>Field Intake</CardTitle>
-                <CardDescription>Register beneficiaries</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-500 mb-6">Onboard beneficiaries with Zero-Trust identity and issue QR vouchers.</p>
-                <Button variant="outline" className="w-full text-emerald-600 border-emerald-200 hover:bg-emerald-50">Open Scanner</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg border-slate-200 dark:border-slate-800 transition-all hover:shadow-xl">
-              <CardHeader>
-                <ShieldCheck className="h-10 w-10 text-blue-500 mb-2" />
-                <CardTitle>Vendor POS</CardTitle>
-                <CardDescription>Redeem aid vouchers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-500 mb-6">Scan beneficiary QR vouchers for real-time on-chain settlement.</p>
-                <Button variant="outline" className="w-full text-blue-600 border-blue-200 hover:bg-blue-50">Launch POS</Button>
-              </CardContent>
-            </Card>
-          </div>
+          ) : currentView === 'donate' ? (
+            <DonatePage onBack={() => setCurrentView('home')} token={localStorage.getItem('cleartrust_jwt')} />
+          ) : null
         )}
       </main>
       <Toaster />
