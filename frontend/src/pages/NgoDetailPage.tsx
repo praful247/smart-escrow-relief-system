@@ -5,7 +5,27 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, ArrowLeft } from 'lucide-react'
 
-import { useRazorpay } from 'react-razorpay'
+// Extended Window interface for Razorpay
+declare global {
+  interface Window {
+    Razorpay: any
+  }
+}
+
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
+
 interface AidPackage {
   id: string
   title: string
@@ -13,6 +33,7 @@ interface AidPackage {
   priceInInr: number
   isCustomAmountAllowed: boolean
 }
+
 
 interface NgoDetails {
   id: string
@@ -35,7 +56,6 @@ export function NgoDetailPage() {
   const [customAmounts, setCustomAmounts] = useState<{ [key: string]: string }>({})
 
   const token = localStorage.getItem('cleartrust_jwt')
-  const { Razorpay } = useRazorpay()
 
   useEffect(() => {
     const fetchNgoDetails = async () => {
@@ -157,8 +177,14 @@ export function NgoDetailPage() {
         }
       }
 
-      if (Razorpay) {
-        const rzp = new Razorpay(options)
+      const isLoaded = await loadRazorpayScript()
+      if (!isLoaded) {
+        toast({ title: "Error", description: "Failed to load Razorpay SDK", variant: "destructive" })
+        return
+      }
+
+      if (window.Razorpay) {
+        const rzp = new window.Razorpay(options)
         rzp.on('payment.failed', function (response: any) {
           toast({ title: "Payment Failed", description: response.error.description, variant: "destructive" })
         })
