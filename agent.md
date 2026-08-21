@@ -1,4 +1,4 @@
-# 🌐 ClearTrust: Atomic Multi-Agent Master Technical Plan (Node.js & JWT Architecture)
+# 🌐 ClearTrust: Atomic Multi-Agent Master Technical Plan (V6 - Multi-Tenant RBAC & Avalanche LAN)
 
 This document serves as an atomic, modular development blueprint for **ClearTrust**. It is structured specifically for **3 autonomous development agents** working independently. Every task defines explicit **Prerequisites, Execution Actions, Inputs, and Standardized Outputs (Handoff Artifacts)** so any agent can pick up tasks without context loss.
 
@@ -6,22 +6,21 @@ This document serves as an atomic, modular development blueprint for **ClearTrus
 
 ## 🤝 1. Software Engineering & Git Collaboration Norms
 
-To ensure seamless collaboration across the 3 independent agents without merge conflicts, all development MUST follow these strict engineering standards:
+To ensure seamless collaboration across the 3 independent agents, all development MUST follow these strict engineering standards:
 
-### 1.1. Branching Strategy (GitHub Flow)
-* **Never commit directly to `main`.**
-* **One Branch, One Feature:** Create a new branch for every isolated feature or bug fix.
-* **Descriptive Naming:** Use clear prefixes such as `feature/`, `bugfix/`, or `chore/` (e.g., `feature/express-jwt-auth`, `bugfix/geofence-math`).
+### 1.1. Branching Strategy (Hackathon Fast-Track)
+* **Direct to Main:** Since Phase 1 and 2 are complete, all agents will now commit directly to the `main` branch to accelerate Phase 3+ integration. 
+* **Pull Before Push:** Always run `git pull origin main` before committing to avoid merge conflicts with other agents.
 
 ### 1.2. Commit Frequency & Atomicity
 * **Small, Atomic Commits:** Each commit must represent a single, logical change. Do not bundle UI changes, database schema updates, and contract deployments into one massive commit.
 * **Commit Often:** Save your work locally frequently to maintain a highly traceable project history.
 
 ### 1.3. Conventional Commits Specification
-All commit messages MUST follow the **Conventional Commits** standard:
+All commit messages MUST follow the **Conventional Commits** standard to automate changelogs and maintain readability:
 * **Format:** `<type>(<optional scope>): <subject>`
 * **Types:** `feat:`, `fix:`, `chore:`, `refactor:`
-* **Imperative Mood:** Write subjects in the present imperative tense (e.g., `feat: add JWT authentication middleware`, NOT `added JWT auth`).
+* **Imperative Mood:** Write subjects in the present imperative tense (e.g., `feat: add NGO schema updates`, NOT `added NGO schema updates`).
 
 ---
 
@@ -30,226 +29,234 @@ All commit messages MUST follow the **Conventional Commits** standard:
 * **Frontend:** React.js (built with **Vite**), Tailwind CSS, shadcn/ui, Razorpay Checkout SDK.
 * **Backend:** Standalone **Node.js (Express.js)** REST API server.
 * **Authentication:** **JWT (JSON Web Tokens)** via `jsonwebtoken` + Google OAuth 2.0 verification (`google-auth-library`).
-* **Database & ORM:** **PostgreSQL** via **Drizzle ORM** (Connection String: `DATABASE_URL`).
+* **Database & ORM:** **PostgreSQL (NeonDB)** via **Drizzle ORM**.
 * **Payments:** **Razorpay Node.js SDK** (Test Mode) for backend order creation & HMAC signature verification.
-* **Blockchain:** Custom Layer-2 RaaS Testnet (Caldera / Gelato), `ClearTrustEscrow.sol` via Thirdweb / Viem / Ethers.js.
+* **Blockchain:** Custom **Avalanche L1 (Subnet-EVM)** deployed locally on Wi-Fi LAN (`ClearTrustEscrow.sol` via Thirdweb / Viem / Ethers.js).
 
 ---
 
 ## 📂 3. Shared Handoff Contracts & Environment Variables
 
-### `.env.example` (Backend - Express Server)
+All agents must strictly adhere to these verified environment variables to guarantee inter-agent compatibility.
+
+### Backend (`server/.env`)
 ```env
 # Server Config
 PORT=5000
 NODE_ENV="development"
 
-# Database
-DATABASE_URL="postgres://user:password@localhost:5432/cleartrust"
+# Database (NeonDB)
+DATABASE_URL="postgresql://neondb_owner:npg_LAspHGW14Qoj@ep-round-star-ayqzvtlx-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
 # JWT Authentication
-JWT_SECRET="super-secret-jwt-token-key-change-in-production"
+JWT_SECRET="uhndfuydsfuifuibiufbsajcnjisancjsabhvuhdmuhbds"
 JWT_EXPIRES_IN="7d"
 
 # Google OAuth Client
-GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID="917497953374-pldns4d09s9vdcbfvd1djhbvsoahkuf7.apps.googleusercontent.com"
 
-# Razorpay Test Gateway
-RAZORPAY_KEY_ID="rzp_test_xxxxxxxxxxxxxx"
-RAZORPAY_KEY_SECRET="xxxxxxxxxxxxxxxxxxxxxxxx"
+# Razorpay Test Gateway (Real Keys)
+RAZORPAY_KEY_ID="rzp_test_TSLUhCirLeKCFq"
+RAZORPAY_KEY_SECRET="j5sNRiyjYCXVcr0ss8gCSKbC"
 
-# Blockchain & RaaS
-RAAS_RPC_URL="https://rpc.cleartrust-chain.caldera.xyz"
+# Blockchain & Avalanche LAN Setup
+RAAS_RPC_URL="http://172.26.220.248:9654/ext/bc/2hSpV1HF3HUJiP9WgKYeYTEKimq4F2rpA2tx6sJM5nmXvDF4pQ/rpc"
 CHAIN_ID=123456
-ESCROW_CONTRACT_ADDRESS="0x0000000000000000000000000000000000000000"
-BACKEND_ADMIN_PRIVATE_KEY="0x0000000000000000000000000000000000000000000000000000000000000000"
+ESCROW_CONTRACT_ADDRESS="0x4Ac1d98D9cEF99EC6546dEd4Bd550b0b287aaD6D"
+BACKEND_ADMIN_PRIVATE_KEY="YOUR_ACTUAL_METAMASK_PRIVATE_KEY_HERE"
 ```
 
-### `.env.example` (Frontend - React Vite)
+### Frontend (`client/.env`)
 ```env
 VITE_API_BASE_URL="http://localhost:5000/api"
-VITE_GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
-VITE_RAZORPAY_KEY_ID="rzp_test_xxxxxxxxxxxxxx"
-VITE_RAAS_RPC_URL="https://rpc.cleartrust-chain.caldera.xyz"
-VITE_ESCROW_CONTRACT_ADDRESS="0x0000000000000000000000000000000000000000"
+VITE_GOOGLE_CLIENT_ID="917497953374-pldns4d09s9vdcbfvd1djhbvsoahkuf7.apps.googleusercontent.com"
+VITE_RAZORPAY_KEY_ID="rzp_test_TSLUhCirLeKCFq"
+VITE_RAAS_RPC_URL="http://172.26.220.248:9654/ext/bc/2hSpV1HF3HUJiP9WgKYeYTEKimq4F2rpA2tx6sJM5nmXvDF4pQ/rpc"
+VITE_CHAIN_ID=123456
+VITE_ESCROW_CONTRACT_ADDRESS="0x4Ac1d98D9cEF99EC6546dEd4Bd550b0b287aaD6D"
 ```
 
 ---
 
-## 🗄️ 4. Shared Drizzle ORM Schema (`server/src/db/schema.ts`)
+## 🗄️ 4. Expanded Drizzle ORM Schema (Multi-Tenant & Profiles)
 
-> **Agent 2** will create this file in Phase 1. **Agent 1** and **Agent 3** will import types directly or use matching API payloads.
+> **Agent 2** will update this file (`server/src/db/schema.ts`) in Phase 3 to support deep profiles and multi-tenant NGOs.
 
 ```typescript
-import { pgTable, uuid, varchar, text, decimal, boolean, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, decimal, boolean, timestamp, jsonb, integer } from 'drizzle-orm/pg-core';
 
-// 1. Users Table (Google OAuth + JWT Auth)
+// 1. Users Table (Updated with Deep Profile & RBAC)
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
   googleId: text('google_id'),
   avatarUrl: text('avatar_url'),
-  role: varchar('role', { length: 50 }).default('DONOR').notNull(), // DONOR, FIELD_WORKER, VENDOR, ADMIN
+  role: varchar('role', { length: 50 }).default('DONOR').notNull(), // DONOR, NGO, FIELD_WORKER, VENDOR
+  age: integer('age'),
+  gender: varchar('gender', { length: 20 }),
+  phone: varchar('phone', { length: 20 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// 2. Disaster Zones
+// 2. NGOs Table (NEW Multi-Tenant Architecture)
+export const ngos = pgTable('ngos', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  registrationNumber: varchar('registration_number', { length: 255 }).notNull().unique(),
+  description: text('description'),
+  missionStatement: text('mission_statement'),
+  isVerified: boolean('is_verified').default(false).notNull(),
+});
+
+// 3. Disaster Zones (Strictly Linked to NGOs)
 export const disasterZones = pgTable('disaster_zones', {
   id: uuid('id').defaultRandom().primaryKey(),
+  ngoId: uuid('ngo_id').references(() => ngos.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
-  description: text('description'),
   centerLatitude: decimal('center_latitude', { precision: 10, scale: 8 }).notNull(),
   centerLongitude: decimal('center_longitude', { precision: 11, scale: 8 }).notNull(),
   radiusKm: decimal('radius_km', { precision: 6, scale: 2 }).notNull(),
-  status: varchar('status', { length: 50 }).default('ACTIVE').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// 3. Onboarded Vendors
+// 4. Vendors Table (Updated with RBAC Links)
 export const vendors = pgTable('vendors', {
   id: uuid('id').defaultRandom().primaryKey(),
-  disasterZoneId: uuid('disaster_zone_id').references(() => disasterZones.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  disasterZoneId: uuid('disaster_zone_id').references(() => disasterZones.id),
   walletAddress: varchar('wallet_address', { length: 42 }).notNull().unique(),
   storeName: varchar('store_name', { length: 255 }).notNull(),
-  ownerName: varchar('owner_name', { length: 255 }).notNull(),
-  vendorType: varchar('vendor_type', { length: 50 }).default('FIXED_STORE').notNull(),
+  businessLicenseNumber: varchar('business_license_number', { length: 255 }),
   latitude: decimal('latitude', { precision: 10, scale: 8 }).notNull(),
   longitude: decimal('longitude', { precision: 11, scale: 8 }).notNull(),
-  isVerified: boolean('is_verified').default(false).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// 4. Beneficiaries (Zero-Trust Identity)
+// 5. Beneficiaries (Zero-Trust Identity)
 export const beneficiaries = pgTable('beneficiaries', {
   id: uuid('id').defaultRandom().primaryKey(),
-  disasterZoneId: uuid('disaster_zone_id').references(() => disasterZones.id, { onDelete: 'cascade' }),
+  disasterZoneId: uuid('disaster_zone_id').references(() => disasterZones.id),
   proofOfHumanityHash: varchar('proof_of_humanity_hash', { length: 64 }).notNull().unique(), // SHA-256
-  incomeEligibilityStatus: varchar('income_eligibility_status', { length: 50 }).default('ELIGIBLE').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// 5. Aid Packages Catalog
+// 6. Aid Packages Catalog (Updated for Custom Donations)
 export const aidPackages = pgTable('aid_packages', {
   id: uuid('id').defaultRandom().primaryKey(),
+  ngoId: uuid('ngo_id').references(() => ngos.id, { onDelete: 'cascade' }),
   title: varchar('title', { length: 255 }).notNull(),
-  description: text('description'),
   priceInInr: decimal('price_in_inr', { precision: 10, scale: 2 }).notNull(),
-  itemsSummary: jsonb('items_summary').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  isCustomAmountAllowed: boolean('is_custom_amount_allowed').default(false).notNull(),
 });
 
-// 6. QR Vouchers & Razorpay Payment Tracking
+// 7. QR Vouchers & Razorpay Payment Tracking (Settlement Engine)
 export const qrVouchers = pgTable('qr_vouchers', {
   id: uuid('id').defaultRandom().primaryKey(),
   packageId: uuid('package_id').references(() => aidPackages.id),
   beneficiaryId: uuid('beneficiary_id').references(() => beneficiaries.id),
-  donorEmail: varchar('donor_email', { length: 255 }).notNull(),
   razorpayOrderId: varchar('razorpay_order_id', { length: 255 }).notNull().unique(),
-  razorpayPaymentId: varchar('razorpay_payment_id', { length: 255 }),
   voucherHash: varchar('voucher_hash', { length: 64 }).notNull().unique(),
-  status: varchar('status', { length: 50 }).default('PENDING_PAYMENT').notNull(), // PENDING_PAYMENT, ISSUED, REDEEMED, EXPIRED
-  issuedAt: timestamp('issued_at'),
-  redeemedAt: timestamp('redeemed_at'),
+  status: varchar('status', { length: 50 }).default('PENDING_PAYMENT').notNull(), // PENDING_PAYMENT, ISSUED, REDEEMED
   redeemedVendorId: uuid('redeemed_vendor_id').references(() => vendors.id),
 });
 ```
 
 ---
 
-## 🤖 5. PHASE 1: Base Setup & Infrastructure
-
-### Task 1.1: Web3 Layer-2 RaaS Setup
-* **Agent:** Agent 1 (Blockchain)
-* **Execution Actions:**
-  1. Spin up Caldera/Gelato L2 testnet named `ClearTrust Chain`.
-  2. Obtain Custom RPC URL, Chain ID, and testnet deployer funds.
-  3. Initialize Thirdweb / Hardhat contract project.
-* **Outputs:**
-  - Save chain configuration to `server/src/config/chain.json`.
-
-### Task 1.2: Express Server & Drizzle Postgres Setup
-* **Agent:** Agent 2 (Backend)
-* **Execution Actions:**
-  1. Initialize Express backend (`server/package.json` with `express`, `cors`, `dotenv`, `drizzle-orm`, `postgres`, `jsonwebtoken`).
-  2. Create `server/src/db/schema.ts` and `server/src/db/index.ts`.
-  3. Run `npx drizzle-kit push` to apply database tables.
-  4. Build JWT Verification Middleware (`server/src/middleware/authMiddleware.ts`):
-     - Extract `Bearer <token>` from `Authorization` header.
-     - Verify signature using `JWT_SECRET`. Attach `req.user` payload to Express request.
-* **Outputs:**
-  - Node.js Express server running on port 5000 with CORS & JWT middleware ready.
-
-### Task 1.3: React (Vite) Shell & Google Auth UI
-* **Agent:** Agent 3 (Frontend)
-* **Execution Actions:**
-  1. Initialize React + Vite app: `npm create vite@latest client -- --template react-ts`.
-  2. Install Tailwind CSS & shadcn/ui components (`button`, `card`, `dialog`, `toast`, `input`).
-  3. Integrate `@react-oauth/google` for Google Sign-In button.
-  4. On Google Auth success, POST credential token to Node.js backend `/api/auth/google`. Store returned JWT token in `localStorage`.
-* **Outputs:**
-  - React shell with Auth Context / LocalStorage JWT handler.
+## ✅ PHASE 1 & 2: Base Setup & Core Logic [COMPLETED]
+* **Agent 1:** Deployed Avalanche LAN Subnet & `ClearTrustEscrow.sol`.
+* **Agent 2:** Built Express server, Drizzle ORM setup, JWT generation, and Razorpay endpoints.
+* **Agent 3:** Built React + Vite shell, Google Auth, and basic Donor Portal.
 
 ---
 
-## 🤖 6. PHASE 2: Core Business Logic & Payment Modules
+## 🤖 PHASE 3: Deep Profiles & Role-Based Access Control (RBAC)
 
-### Task 2.1: Escrow Smart Contract Development
-* **Agent:** Agent 1 (Blockchain)
-* **Execution Actions:**
-  1. Write `ClearTrustEscrow.sol` with `createVoucher` and `redeemVoucher` functions.
-  2. Deploy via Thirdweb to `ClearTrust Chain`.
-  3. Export contract ABI and contract address to `server/src/config/ClearTrustEscrow.json`.
-
-### Task 2.2: JWT Auth Routes & Razorpay Engine
+### Task 3.1: JWT Role Enrichment & RBAC Middleware
 * **Agent:** Agent 2 (Backend)
 * **Execution Actions:**
-  1. Create `/api/auth/google` route: Verifies Google token with `google-auth-library`, upserts user in Drizzle DB, and signs JWT.
-  2. Install `razorpay` Node.js SDK.
-  3. Create POST `/api/payment/create-order` (JWT Protected):
-     - Takes `packageId`, creates Razorpay order, inserts record into `qrVouchers` as `PENDING_PAYMENT`.
-  4. Create POST `/api/payment/verify` (JWT Protected):
-     - Verifies Razorpay HMAC SHA256 signature using `RAZORPAY_KEY_SECRET`.
-     - Updates `qrVouchers` status to `ISSUED`.
+  1. Update `server/src/db/schema.ts` with the new V6 tables (`ngos`, modified `users`, etc.) and run `npx drizzle-kit push`.
+  2. Modify the `/api/auth/google` endpoint to attach the user's `role` directly inside the signed JWT payload.
+  3. Create `server/src/middleware/roleMiddleware.ts` with wrapper functions (e.g., `requireRole('NGO')`, `requireRole('VENDOR')`) to protect specific routes.
+* **Outputs:** Express backend ready to reject unauthorized access with `403 Forbidden` and fully upgraded database schema.
 
-### Task 2.3: Zero-Trust Hashing & Geofence Utility
-* **Agent:** Agent 2 (Backend)
-* **Execution Actions:**
-  1. Build `crypto.ts` for SHA-256 hashing.
-  2. Build `geo.ts` implementing the Haversine distance formula.
-  3. Build POST `/api/beneficiaries/register`:
-     - Takes raw beneficiary identity data, generates SHA-256 `proofOfHumanityHash`.
-     - Checks Drizzle for hash collisions (Anti-Sybil check) and inserts beneficiary record.
-
-### Task 2.4: Donor Portal & Razorpay Checkout
+### Task 3.2: Role-Based Routing & Profile Onboarding UI
 * **Agent:** Agent 3 (Frontend)
 * **Execution Actions:**
-  1. Add Razorpay Checkout JS script in `index.html`.
-  2. Build `/donate` page displaying Aid Package cards.
-  3. "Donate" button triggers `/api/payment/create-order` (sending JWT token in headers).
-  4. Opens Razorpay popup modal; on payment success, calls `/api/payment/verify`.
+  1. Implement React Router redirects post-login. Decode the JWT to route DONORs to `/explore`, NGOs to `/ngo/dashboard`, and VENDORs to `/vendor/pos`.
+  2. Build a `/complete-profile` multi-step form. If a user's DB profile is missing `age`, `phone`, or role-specific details (NGO Registration Number, Vendor License), force them to this page.
+  3. Implement a clean Logout functionality that clears the JWT from `localStorage`.
+* **Outputs:** Protected frontend routing with deep profile onboarding functionality.
 
 ---
 
-## 🤖 7. PHASE 3: Integration & Redemption Workflow
+## 🤖 PHASE 4: NGO Discovery & Custom Donation Engine
 
-### Task 3.1: NGO Field Intake & Dynamic QR Generator Page
+### Task 4.1: NGO Package Management (CRUD)
+* **Agent:** Agent 2 & Agent 3
+* **Execution Actions (Agent 2 - Backend):** Build `POST /api/ngo/packages` (JWT Protected + requireRole 'NGO') allowing verified NGOs to create, edit, and delete their own specific aid packages.
+* **Execution Actions (Agent 3 - Frontend):** Build `/ngo/packages` dashboard for NGOs to manage their inventory and toggle the `isCustomAmountAllowed` flag.
+* **Outputs:** A self-serve backend and UI for NGOs to manage their campaigns independently.
+
+### Task 4.2: The "Explore NGOs" Marketplace
 * **Agent:** Agent 3 (Frontend)
 * **Execution Actions:**
-  1. Build `/field-intake` page for authenticated field workers.
-  2. Submit form to POST `/api/beneficiaries/register`.
-  3. Render dynamic QR code using `qrcode.react` containing `voucherHash`.
+  1. Build `/explore` page displaying a dynamic grid of verified NGOs using shadcn/ui cards.
+  2. Build `/ngo/[id]` detail page showing the NGO's mission, impact stats, and their specific Aid Packages fetched from the backend.
+* **Outputs:** A complete marketplace UI for donors to browse charities.
 
-### Task 3.2: Vendor POS Scanner & On-Chain Settlement API
-* **Agent:** Agent 2 & Agent 3 (Joint Handoff)
-* **Execution Actions (Agent 3):**
-  1. Build `/vendor-pos` with webcam scanning using `html5-qrcode`.
-  2. Obtain user's real-time GPS coordinates via `navigator.geolocation.getCurrentPosition`.
-  3. Send scanned `voucherHash`, vendor coordinates, and vendor wallet to Node.js backend.
-* **Execution Actions (Agent 2):**
-  1. Create POST `/api/vouchers/redeem` (JWT Protected):
-     - Query `qrVouchers` DB table; verify voucher status is `ISSUED`.
-     - Check Haversine distance from vendor GPS to disaster zone perimeter.
-     - If distance > `radiusKm`, return `403 Geofence Violation`.
-     - Trigger smart contract `redeemVoucher` method using admin private key (`ethers`/`viem`).
-     - Update `qrVouchers` status in Drizzle DB to `REDEEMED`.
+### Task 4.3: Dynamic Razorpay Checkout Engine
+* **Agent:** Agent 2 & Agent 3
+* **Execution Actions (Agent 2 - Backend):** Update `POST /api/payment/create-order` to accept a `customAmount` payload if the selected package allows it.
+* **Execution Actions (Agent 3 - Frontend):** Update the Razorpay checkout modal to include a text input for custom INR amounts (e.g., ₹500, ₹1000, Custom: ₹____).
+* **Outputs:** End-to-end custom donation payment flow.
+
+---
+
+## 🤖 PHASE 5: Field Operations & Zero-Trust Beneficiary Intake
+
+### Task 5.1: NGO Field Worker App
+* **Agent:** Agent 3 (Frontend)
+* **Execution Actions:**
+  1. Build `/ngo/field-intake`. This is a mobile-first form for NGO field workers to register victims in disaster zones.
+  2. Implement an intake form that collects basic traits/biometrics instead of state IDs (Zero-Trust Identity).
+* **Outputs:** Field worker data collection interface.
+
+### Task 5.2: Dynamic QR Generation & Hashing
+* **Agent:** Agent 2 & Agent 3
+* **Execution Actions (Agent 2 - Backend):** Expand `POST /api/beneficiaries/register`. It must generate a SHA-256 `proofOfHumanityHash` and link the issued voucher value.
+* **Execution Actions (Agent 3 - Frontend):** Render a high-contrast dynamic QR Code (using `qrcode.react`) containing the `voucherHash` directly on the field worker's screen.
+* **Outputs:** Cryptographically secure offline QR vouchers for victims.
+
+---
+
+## 🤖 PHASE 6: Vendor Geofenced POS & Smart Contract Settlement
+
+### Task 6.1: Vendor HTML5 Webcam POS
+* **Agent:** Agent 3 (Frontend)
+* **Execution Actions:**
+  1. Build `/vendor/pos` (Route restricted to `VENDOR` role).
+  2. Integrate `html5-qrcode` to activate the device's web camera and scan the victim's QR code voucher.
+  3. Capture the vendor's real-time GPS coordinates via HTML5 `navigator.geolocation`.
+* **Outputs:** Point-of-Sale scanning terminal for local merchants.
+
+### Task 6.2: On-Chain Escrow Settlement API
+* **Agent:** Agent 2 (Backend)
+* **Execution Actions:**
+  1. Build `POST /api/vouchers/redeem` (Protected for Vendors).
+  2. Validate the Vendor's GPS coordinates against the disaster zone `radiusKm` using the Haversine formula (from `geo.ts`).
+  3. If valid, use `BACKEND_ADMIN_PRIVATE_KEY` with `ethers.js` to call `ClearTrustEscrow.sol` and instantly release crypto funds to the Vendor's wallet.
+  4. Update the DB `qrVouchers` status to `REDEEMED`.
+* **Outputs:** Automated, gasless blockchain settlement engine.
+
+---
+
+## 🤖 PHASE 7: Transparency Dashboards & Audit Trail
+
+### Task 7.1: Donor "Track My Impact" Dashboard
+* **Agent:** Agent 3 (Frontend)
+* **Execution Actions:** Build `/donor/impact`. Show the donor exactly which NGO received their funds, if the voucher was issued to a victim, and the final blockchain transaction hash once a vendor redeems it.
+* **Outputs:** Trust-building transparency dashboard for donors.
+
+### Task 7.2: NGO Analytics Ledger
+* **Agent:** Agent 3 (Frontend)
+* **Execution Actions:** Build `/ngo/analytics` showing total funds raised via Razorpay, total vouchers issued, and heatmaps of where vendors are redeeming the aid within the disaster zone.
+* **Outputs:** Administrative data visualization for NGOs.
