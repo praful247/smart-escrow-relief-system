@@ -20,19 +20,19 @@ interface AidPackage {
 
 const MOCK_PACKAGES: AidPackage[] = [
   {
-    id: 'pkg_001',
+    id: '11111111-1111-1111-1111-111111111111',
     title: 'Emergency Food Ration',
     description: 'Provides a family of four with basic food supplies (rice, lentils, cooking oil, etc.) for a week.',
     priceInInr: 1500,
   },
   {
-    id: 'pkg_002',
+    id: '22222222-2222-2222-2222-222222222222',
     title: 'Medical Supply Kit',
     description: 'Includes first-aid essentials, water purification tablets, and basic non-prescription medicines.',
     priceInInr: 2500,
   },
   {
-    id: 'pkg_003',
+    id: '33333333-3333-3333-3333-333333333333',
     title: 'Temporary Shelter Kit',
     description: 'Provides tarpaulins, ropes, and thermal blankets to secure emergency shelter.',
     priceInInr: 5000,
