@@ -179,6 +179,38 @@ app.post('/api/beneficiaries/register', authenticateJWT, async (req, res) => {
   }
 });
 
+// ==========================================
+// 5. User Profile Update
+// ==========================================
+app.put('/api/users/profile', authenticateJWT, async (req, res) => {
+  const { role, age, gender, phone } = req.body;
+  
+  try {
+    const updated = await db.update(users)
+      .set({ role, age, gender, phone })
+      .where(eq(users.id, req.user.id))
+      .returning();
+      
+    if (updated.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = updated[0];
+    const isProfileCompleted = Boolean(user.age && user.phone);
+    
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role, profileCompleted: isProfileCompleted },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+    
+    res.json({ success: true, token, user });
+  } catch (error) {
+    console.error('Profile Update Error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
 app.get('/', (req, res) => res.send('ClearTrust API Server is running'));
 
 app.listen(port, () => console.log(`Server is running on port ${port}`));
