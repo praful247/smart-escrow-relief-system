@@ -259,8 +259,20 @@ app.put('/api/users/profile', authenticateJWT, async (req, res) => {
 
 app.get('/api/ngos', async (req, res) => {
   try {
-    // In a real app, we'd leftJoin disasterZones. For simplicity:
-    const allNgos = await db.select().from(ngos).where(eq(ngos.isVerified, true));
+    const allNgos = await db.select({
+      id: ngos.id,
+      userId: ngos.userId,
+      registrationNumber: ngos.registrationNumber,
+      description: ngos.description,
+      missionStatement: ngos.missionStatement,
+      isVerified: ngos.isVerified,
+      name: users.name,
+      avatarUrl: users.avatarUrl
+    })
+    .from(ngos)
+    .innerJoin(users, eq(ngos.userId, users.id))
+    .where(eq(ngos.isVerified, true));
+    
     res.json({ ngos: allNgos });
   } catch (error) {
     console.error('Fetch NGOs Error:', error);
@@ -271,7 +283,20 @@ app.get('/api/ngos', async (req, res) => {
 app.get('/api/ngos/:id', async (req, res) => {
   try {
     const ngoId = req.params.id;
-    const ngoResult = await db.select().from(ngos).where(eq(ngos.id, ngoId)).limit(1);
+    const ngoResult = await db.select({
+      id: ngos.id,
+      userId: ngos.userId,
+      registrationNumber: ngos.registrationNumber,
+      description: ngos.description,
+      missionStatement: ngos.missionStatement,
+      isVerified: ngos.isVerified,
+      name: users.name,
+      avatarUrl: users.avatarUrl
+    })
+    .from(ngos)
+    .innerJoin(users, eq(ngos.userId, users.id))
+    .where(eq(ngos.id, ngoId)).limit(1);
+    
     if (ngoResult.length === 0) return res.status(404).json({ error: 'NGO not found' });
     
     const packages = await db.select().from(aidPackages).where(eq(aidPackages.ngoId, ngoId));

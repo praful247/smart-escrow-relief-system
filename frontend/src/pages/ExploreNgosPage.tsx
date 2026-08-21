@@ -70,14 +70,14 @@ export function ExploreNgosPage() {
               <CardHeader>
                 <div className="flex items-center gap-4">
                   {ngo.avatarUrl ? (
-                    <img src={ngo.avatarUrl} alt={ngo.name} className="w-12 h-12 rounded-full object-cover border" />
+                    <img src={ngo.avatarUrl} alt={ngo.name || 'NGO'} className="w-12 h-12 rounded-full object-cover border" />
                   ) : (
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                      {(ngo.organizationName || ngo.name).charAt(0)}
+                      {(ngo.organizationName || ngo.name || 'NGO').charAt(0)}
                     </div>
                   )}
                   <div>
-                    <CardTitle className="text-xl">{ngo.organizationName || ngo.name}</CardTitle>
+                    <CardTitle className="text-xl">{ngo.organizationName || ngo.name || 'Verified NGO'}</CardTitle>
                     <CardDescription className="text-xs font-mono mt-1 text-slate-500">
                       Reg: {ngo.registrationNumber || 'N/A'}
                     </CardDescription>
