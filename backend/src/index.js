@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import Razorpay from 'razorpay';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 import { authenticateJWT } from './middleware/authMiddleware.js';
@@ -175,7 +175,7 @@ app.post('/api/payment/verify', authenticateJWT, async (req, res) => {
 // ==========================================
 // 4. Beneficiary Registration (Zero-Trust)
 // ==========================================
-app.post('/api/beneficiaries/register', authenticateJWT, async (req, res) => {
+app.post('/api/beneficiaries/register', requireRole('FIELD_WORKER'), async (req, res) => {
   const { disasterZoneId, identityData, incomeEligibilityStatus } = req.body;
   
   try {
@@ -194,8 +194,27 @@ app.post('/api/beneficiaries/register', authenticateJWT, async (req, res) => {
       proofOfHumanityHash,
       incomeEligibilityStatus: incomeEligibilityStatus || 'ELIGIBLE'
     }).returning();
+    
+    const newBeneficiary = inserted[0];
 
-    res.json({ success: true, beneficiary: inserted[0] });
+    // Voucher Assignment Logic (Crucial)
+    // Find ONE voucher where status = 'ISSUED' AND beneficiaryId IS NULL
+    const availableVouchers = await db.select().from(qrVouchers)
+      .where(and(eq(qrVouchers.status, 'ISSUED'), isNull(qrVouchers.beneficiaryId)))
+      .limit(1);
+
+    if (availableVouchers.length === 0) {
+      return res.json({ success: true, beneficiary: newBeneficiary, error: 'No available vouchers to assign' });
+    }
+
+    const voucherToAssign = availableVouchers[0];
+
+    // Update that specific voucher record
+    await db.update(qrVouchers)
+      .set({ beneficiaryId: newBeneficiary.id })
+      .where(eq(qrVouchers.id, voucherToAssign.id));
+
+    res.json({ success: true, beneficiary: newBeneficiary, voucherHash: voucherToAssign.voucherHash });
   } catch (error) {
     console.error('Beneficiary Registration Error:', error);
     res.status(500).json({ error: 'Registration failed' });
