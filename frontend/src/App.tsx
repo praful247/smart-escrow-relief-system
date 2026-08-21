@@ -12,7 +12,7 @@ import { NgoDetailPage } from './pages/NgoDetailPage'
 import { NgoDashboardPackages } from './pages/NgoDashboardPackages'
 import { NgoDashboard } from './pages/NgoDashboard'
 import { FieldIntakePage } from './pages/FieldIntakePage'
-import { VendorPos } from './pages/VendorPos'
+import { VendorPosPage } from './pages/VendorPosPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('cleartrust_jwt')
@@ -100,7 +100,7 @@ export default function App() {
           
           <Route path="/vendor/pos" element={
             <ProtectedRoute>
-              <VendorPos />
+              <VendorPosPage />
             </ProtectedRoute>
           } />
           
