@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, ArrowLeft, UserPlus, ShieldCheck, CheckCircle2 } from 'lucide-react'
@@ -64,7 +65,6 @@ export function FieldIntakePage() {
         description: "Beneficiary registered securely on-chain.",
       })
       
-      // The backend returns the inserted beneficiary which contains the proofOfHumanityHash
       if (data.beneficiary && data.beneficiary.proofOfHumanityHash) {
         setSuccessHash(data.beneficiary.proofOfHumanityHash)
       } else {
@@ -92,130 +92,130 @@ export function FieldIntakePage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center p-4 sm:p-8 bg-slate-950 text-slate-50 w-full min-h-[calc(100vh-80px)]">
-      <div className="max-w-md w-full">
-        
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="text-slate-400 hover:text-white hover:bg-slate-800">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-white">Field Intake</h2>
-            <p className="text-sm text-slate-400">Zero-Trust Registration</p>
-          </div>
-        </div>
+    <div className="max-w-4xl w-full p-8">
+      <Button variant="ghost" onClick={() => navigate('/ngo/dashboard')} className="mb-6 gap-2">
+        <ArrowLeft className="w-4 h-4" /> Back
+      </Button>
 
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold tracking-tight">Field Intake</h2>
+        <p className="text-muted-foreground mt-1">Zero-Trust Registration</p>
+      </div>
+
+      <Card className="shadow-lg border-slate-200 dark:border-slate-800">
         {successHash ? (
-          /* SUCCESS VIEW - QR CODE */
-          <div className="bg-slate-900 border border-emerald-500/30 rounded-xl p-6 sm:p-8 shadow-2xl flex flex-col items-center text-center animate-in fade-in zoom-in duration-300">
-            <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle2 className="h-8 w-8 text-emerald-400" />
-            </div>
-            
-            <h3 className="text-xl font-bold text-white mb-2">Registration Verified</h3>
-            <p className="text-slate-400 text-sm mb-8">
-              Scan this QR code at any verified vendor POS to redeem the aid voucher.
-            </p>
-
-            <div className="bg-white p-4 rounded-xl shadow-inner mb-8">
-              <QRCodeSVG 
-                value={successHash} 
-                size={220}
-                level="H"
-                includeMargin={true}
-              />
-            </div>
-            
-            <div className="text-xs font-mono text-slate-500 mb-8 break-all px-4 bg-slate-950 py-2 rounded border border-slate-800">
-              {successHash}
-            </div>
-
-            <Button 
-              onClick={handleReset} 
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 text-lg"
-            >
-              <UserPlus className="mr-2 h-5 w-5" />
-              Register Another Victim
-            </Button>
-          </div>
-        ) : (
-          /* FORM VIEW */
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 sm:p-8 shadow-2xl">
-            <div className="flex justify-center mb-6">
-              <ShieldCheck className="h-12 w-12 text-blue-400" />
-            </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-300 uppercase tracking-wider">Victim Name</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={victimName} 
-                  onChange={e => setVictimName(e.target.value)} 
-                  className="flex h-12 w-full rounded-md border-2 border-slate-700 bg-slate-950 px-4 py-2 text-base text-white placeholder:text-slate-600 focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500" 
-                  placeholder="Full Legal Name" 
+          <>
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <CardTitle className="text-2xl font-bold">Registration Verified</CardTitle>
+              <CardDescription>
+                Scan this QR code at any verified vendor POS to redeem the aid voucher.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center pt-6">
+              <div className="bg-white p-4 rounded-xl shadow-inner mb-6">
+                <QRCodeSVG 
+                  value={successHash} 
+                  size={200}
+                  level="H"
+                  includeMargin={true}
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-bold text-slate-300 uppercase tracking-wider">Age</label>
-                  <input 
-                    type="number" 
-                    required 
-                    min="1"
-                    value={age} 
-                    onChange={e => setAge(e.target.value)} 
-                    className="flex h-12 w-full rounded-md border-2 border-slate-700 bg-slate-950 px-4 py-2 text-base text-white placeholder:text-slate-600 focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500" 
-                    placeholder="e.g. 45" 
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-bold text-slate-300 uppercase tracking-wider">Family Size</label>
-                  <input 
-                    type="number" 
-                    required 
-                    min="1"
-                    value={familySize} 
-                    onChange={e => setFamilySize(e.target.value)} 
-                    className="flex h-12 w-full rounded-md border-2 border-slate-700 bg-slate-950 px-4 py-2 text-base text-white placeholder:text-slate-600 focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500" 
-                    placeholder="e.g. 4" 
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-300 uppercase tracking-wider">Village / Location</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={villageName} 
-                  onChange={e => setVillageName(e.target.value)} 
-                  className="flex h-12 w-full rounded-md border-2 border-slate-700 bg-slate-950 px-4 py-2 text-base text-white placeholder:text-slate-600 focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500" 
-                  placeholder="Current specific location" 
-                />
+              
+              <div className="text-xs font-mono text-slate-500 mb-8 break-all px-4 bg-slate-100 dark:bg-slate-900 py-2 rounded border border-slate-200 dark:border-slate-800 text-center max-w-full">
+                {successHash}
               </div>
 
               <Button 
-                type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 text-lg mt-6" 
-                disabled={loading}
+                onClick={handleReset} 
+                className="w-full sm:w-auto font-semibold gap-2"
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Generating Proof...
-                  </>
-                ) : (
-                  'Generate Identity Hash'
-                )}
+                <UserPlus className="h-4 w-4" />
+                Register Another Victim
               </Button>
-            </form>
-          </div>
+            </CardContent>
+          </>
+        ) : (
+          <>
+            <CardHeader>
+              <ShieldCheck className="h-10 w-10 text-primary mb-2" />
+              <CardTitle>Register Beneficiary</CardTitle>
+              <CardDescription>Collect identity data to generate a cryptographic voucher hash.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Victim Name</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={victimName} 
+                    onChange={e => setVictimName(e.target.value)} 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" 
+                    placeholder="Full Legal Name" 
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Age</label>
+                    <input 
+                      type="number" 
+                      required 
+                      min="1"
+                      value={age} 
+                      onChange={e => setAge(e.target.value)} 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" 
+                      placeholder="e.g. 45" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Family Size</label>
+                    <input 
+                      type="number" 
+                      required 
+                      min="1"
+                      value={familySize} 
+                      onChange={e => setFamilySize(e.target.value)} 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" 
+                      placeholder="e.g. 4" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Village / Location</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={villageName} 
+                    onChange={e => setVillageName(e.target.value)} 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" 
+                    placeholder="Current specific location" 
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full font-semibold mt-6" 
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Proof...
+                    </>
+                  ) : (
+                    'Generate Identity Hash'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </>
         )}
-      </div>
+      </Card>
     </div>
   )
 }
