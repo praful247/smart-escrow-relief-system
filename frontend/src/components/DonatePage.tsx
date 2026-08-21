@@ -57,53 +57,46 @@ export function DonatePage({ onBack, token }: DonatePageProps) {
     setLoadingPackageId(pkg.id)
 
     try {
-      // const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
       
       // Step 1: Create Razorpay Order
-      // const orderRes = await fetch(`${apiBaseUrl}/payment/create-order`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${token}`
-      //   },
-      //   body: JSON.stringify({ packageId: pkg.id })
-      // })
+      const orderRes = await fetch(`${apiBaseUrl}/payment/create-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ packageId: pkg.id, amountInInr: pkg.priceInInr })
+      })
       
-      // if (!orderRes.ok) throw new Error('Failed to create order')
-      // const orderData = await orderRes.json()
-
-      // MOCK BACKEND RESPONSE for frontend testing
-      const orderData = {
-        orderId: `order_${Math.random().toString(36).substring(7)}`,
-        amount: pkg.priceInInr * 100, // in paise
-        currency: 'INR'
-      }
+      if (!orderRes.ok) throw new Error('Failed to create order')
+      const orderData = await orderRes.json()
 
       // Step 2: Initialize Razorpay Checkout
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_mock',
-        amount: orderData.amount,
-        currency: orderData.currency,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
         name: 'ClearTrust Relief',
         description: `Donation for ${pkg.title}`,
-        order_id: orderData.orderId,
-        handler: async function (_response: any) {
+        order_id: orderData.order.id,
+        handler: async function (response: any) {
           try {
             // Step 3: Verify Payment Signature
-            // const verifyRes = await fetch(`${apiBaseUrl}/payment/verify`, {
-            //   method: 'POST',
-            //   headers: {
-            //     'Content-Type': 'application/json',
-            //     'Authorization': `Bearer ${token}`
-            //   },
-            //   body: JSON.stringify({
-            //     razorpay_order_id: response.razorpay_order_id,
-            //     razorpay_payment_id: response.razorpay_payment_id,
-            //     razorpay_signature: response.razorpay_signature,
-            //   })
-            // })
+            const verifyRes = await fetch(`${apiBaseUrl}/payment/verify`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              })
+            })
             
-            // if (!verifyRes.ok) throw new Error('Payment verification failed')
+            if (!verifyRes.ok) throw new Error('Payment verification failed')
 
             toast({
               title: "Donation Successful!",

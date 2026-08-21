@@ -21,19 +21,15 @@ export default function App() {
 
   const handleLoginSuccess = async (credentialResponse: any) => {
     try {
-      // In a real app, we would POST to the backend here:
-      // const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-      // const res = await fetch(`${apiBaseUrl}/auth/google`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ token: credentialResponse.credential })
-      // })
-      // const data = await res.json()
-      // const jwtToken = data.token
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+      const res = await fetch(`${apiBaseUrl}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: credentialResponse.credential })
+      })
+      const data = await res.json()
+      const jwtToken = data.token
 
-      // For Phase 1 frontend setup, we mock the JWT received:
-      const jwtToken = `mock-jwt-token-for-${credentialResponse.credential?.substring(0, 10)}`
-      
       localStorage.setItem('cleartrust_jwt', jwtToken)
       setIsAuthenticated(true)
       
