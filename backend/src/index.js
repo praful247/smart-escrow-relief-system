@@ -86,6 +86,10 @@ app.post('/api/auth/google', async (req, res) => {
 app.post('/api/payment/create-order', authenticateJWT, async (req, res) => {
   const { packageId, beneficiaryId, amountInInr } = req.body;
   
+  if (!amountInInr || amountInInr * 100 < 100) {
+    return res.status(400).json({ error: 'Amount must be at least 1 INR (100 paise)' });
+  }
+
   if (!razorpayInstance) return res.status(500).json({ error: 'Razorpay not configured' });
 
   try {
@@ -121,6 +125,10 @@ app.post('/api/payment/create-order', authenticateJWT, async (req, res) => {
 // ==========================================
 app.post('/api/payment/verify', authenticateJWT, async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    return res.status(400).json({ error: 'Missing required payment fields' });
+  }
 
   const isValid = verifyRazorpaySignature(
     razorpay_order_id,
