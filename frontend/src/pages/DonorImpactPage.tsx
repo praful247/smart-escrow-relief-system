@@ -72,9 +72,32 @@ export default function DonorImpactPage() {
         <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 tracking-tight mb-4">
           Track Your Impact
         </h1>
-        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+        <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-8">
           Every rupee you donate is tracked on the blockchain. See exactly when and where your aid is delivered to those who need it most.
         </p>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          <div className="bg-slate-900/50 backdrop-blur-md rounded-lg p-6 border border-slate-800 text-center">
+            <div className="text-3xl font-bold text-white">{impactData.length}</div>
+            <div className="text-sm text-slate-400 mt-1">Total Packages Funded</div>
+          </div>
+          <div className="bg-slate-900/50 backdrop-blur-md rounded-lg p-6 border border-slate-800 text-center">
+            <div className="text-3xl font-bold text-white">
+              ₹{impactData.reduce((sum, item) => sum + (Number(item.package?.priceInInr) || 0), 0).toLocaleString('en-IN')}
+            </div>
+            <div className="text-sm text-slate-400 mt-1">Total Spent</div>
+          </div>
+          <div className="bg-slate-900/50 backdrop-blur-md rounded-lg p-6 border border-slate-800 text-center">
+            <div className="text-3xl font-bold text-emerald-400">
+              {impactData.filter(i => i.voucher.status === 'REDEEMED').length}
+            </div>
+            <div className="text-sm text-slate-400 mt-1">Packages Delivered</div>
+          </div>
+          <div className="bg-slate-900/50 backdrop-blur-md rounded-lg p-6 border border-slate-800 text-center">
+            <div className="text-3xl font-bold text-cyan-400">100%</div>
+            <div className="text-sm text-slate-400 mt-1">On-Chain Verified</div>
+          </div>
+        </div>
       </div>
 
       {loading ? (

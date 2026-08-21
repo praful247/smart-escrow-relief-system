@@ -67,7 +67,9 @@ app.post('/api/auth/google', async (req, res) => {
     }
 
     const user = userRecord[0];
-    const isProfileCompleted = Boolean(user.age && user.phone);
+    // If role is DONOR, they must have age and phone. If they picked another role, they are considered complete.
+    // However, default role is DONOR, so new users will have isProfileCompleted = false.
+    const isProfileCompleted = user.role === 'DONOR' ? Boolean(user.age && user.phone) : true;
 
     // Generate JWT
     const token = jwt.sign(
@@ -229,7 +231,7 @@ app.put('/api/users/profile', authenticateJWT, async (req, res) => {
     }
     
     const user = updated[0];
-    const isProfileCompleted = Boolean(user.age && user.phone);
+    const isProfileCompleted = user.role === 'DONOR' ? Boolean(user.age && user.phone) : true;
     
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, profileCompleted: isProfileCompleted },
@@ -588,10 +590,41 @@ app.get('/api/admin/stats', authenticateJWT, requireRole('ADMIN'), async (req, r
   }
 });
 
+app.get('/api/field-workers/available-packages', authenticateJWT, requireRole('FIELD_WORKER'), async (req, res) => {
+  try {
+    const workerLink = await db.select().from(ngoWorkers).where(eq(ngoWorkers.userId, req.user.id)).limit(1);
+    if (workerLink.length === 0) return res.status(403).json({ error: 'You are not linked to any NGO' });
+    const ngoId = workerLink[0].ngoId;
+
+    const packages = await db.select().from(aidPackages).where(eq(aidPackages.ngoId, ngoId));
+    
+    const availablePackages = [];
+    for (const pkg of packages) {
+      const vouchers = await db.select()
+        .from(qrVouchers)
+        .where(and(
+          eq(qrVouchers.packageId, pkg.id),
+          eq(qrVouchers.status, 'ISSUED'),
+          isNull(qrVouchers.beneficiaryId)
+        ));
+      
+      availablePackages.push({
+        ...pkg,
+        availableCount: vouchers.length
+      });
+    }
+
+    res.json({ packages: availablePackages });
+  } catch (error) {
+    console.error('Available Packages Error:', error);
+    res.status(500).json({ error: 'Failed to fetch available packages' });
+  }
+});
+
 // Field Worker: Register Beneficiary
 app.post('/api/beneficiaries/register', authenticateJWT, requireRole('FIELD_WORKER'), async (req, res) => {
-  const { identityData } = req.body;
-  if (!identityData) return res.status(400).json({ error: 'Missing identity data' });
+  const { identityData, packageId } = req.body;
+  if (!identityData || !packageId) return res.status(400).json({ error: 'Missing identity data or packageId' });
 
   try {
     // 1. Get worker's linked NGO
@@ -599,7 +632,7 @@ app.post('/api/beneficiaries/register', authenticateJWT, requireRole('FIELD_WORK
     if (workerLink.length === 0) return res.status(403).json({ error: 'You are not linked to any NGO. Join an NGO first.' });
     const ngoId = workerLink[0].ngoId;
 
-    // 2. Find an available voucher for this NGO's packages
+    // 2. Find an available voucher for this NGO's packages and specified packageId
     // Join qrVouchers and aidPackages where aidPackages.ngoId = ngoId and qrVouchers.status = 'PENDING_PAYMENT'
     const availableVoucherRows = await db.select({
       voucher: qrVouchers
@@ -608,6 +641,7 @@ app.post('/api/beneficiaries/register', authenticateJWT, requireRole('FIELD_WORK
     .innerJoin(aidPackages, eq(qrVouchers.packageId, aidPackages.id))
     .where(and(
       eq(aidPackages.ngoId, ngoId),
+      eq(qrVouchers.packageId, packageId),
       eq(qrVouchers.status, 'ISSUED'),
       isNull(qrVouchers.beneficiaryId)
     ))

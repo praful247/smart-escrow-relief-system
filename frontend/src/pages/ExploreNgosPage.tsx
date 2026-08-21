@@ -45,13 +45,54 @@ export function ExploreNgosPage() {
   }, [toast])
 
   return (
-    <div className="max-w-6xl w-full p-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold tracking-tight">NGO Marketplace</h2>
-        <p className="text-muted-foreground mt-1">
-          Discover verified NGOs and fund their disaster relief packages directly on-chain.
-        </p>
+    <div className="w-full">
+      {/* Hero Section */}
+      <div className="bg-slate-900 text-white py-20 px-8 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <img 
+            src="https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?q=80&w=2070&auto=format&fit=crop" 
+            alt="Disaster Relief Hero" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent" />
+        <div className="max-w-6xl mx-auto relative z-10">
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
+            Support Verified Relief Efforts
+          </h1>
+          <p className="text-lg md:text-xl text-slate-300 max-w-2xl mb-8">
+            Browse our network of vetted NGOs. Your donations are locked on the blockchain and released only when a registered vendor physically hands over the relief package to a verified victim.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl">
+            <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20">
+              <div className="text-3xl font-bold text-white">$1.2M+</div>
+              <div className="text-sm text-slate-300">Funds Protected</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20">
+              <div className="text-3xl font-bold text-white">45,000+</div>
+              <div className="text-sm text-slate-300">Families Helped</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20">
+              <div className="text-3xl font-bold text-white">100%</div>
+              <div className="text-sm text-slate-300">On-Chain Transparency</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20">
+              <div className="text-3xl font-bold text-white">12</div>
+              <div className="text-sm text-slate-300">Active Disaster Zones</div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div className="max-w-6xl mx-auto w-full p-8 mt-4">
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Active Campaigns</h2>
+            <p className="text-muted-foreground mt-1">
+              Select an NGO below to view their active aid packages.
+            </p>
+          </div>
+        </div>
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -102,6 +143,7 @@ export function ExploreNgosPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }

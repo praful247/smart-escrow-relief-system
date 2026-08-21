@@ -18,13 +18,43 @@ export function FieldIntakePage() {
   const [age, setAge] = useState('')
   const [familySize, setFamilySize] = useState('1')
   const [villageName, setVillageName] = useState('')
+  const [availablePackages, setAvailablePackages] = useState<{id: string, title: string, availableCount: number}[]>([])
+  const [selectedPackageId, setSelectedPackageId] = useState('')
 
   const token = localStorage.getItem('cleartrust_jwt')
 
   useEffect(() => {
     if (!token) {
       navigate('/')
+      return
     }
+
+    const fetchPackages = async () => {
+      try {
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+        const res = await fetch(`${apiBaseUrl}/field-workers/available-packages`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setAvailablePackages(data.packages || [])
+          
+          if (data.packages && data.packages.length > 0) {
+            // Default to the first package that actually has available vouchers, if any
+            const firstAvailable = data.packages.find((p: any) => p.availableCount > 0)
+            if (firstAvailable) {
+              setSelectedPackageId(firstAvailable.id)
+            } else {
+              // If none are available, just select the first one but it will be disabled
+              setSelectedPackageId(data.packages[0].id)
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch packages", err)
+      }
+    }
+    fetchPackages()
   }, [token, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,6 +65,7 @@ export function FieldIntakePage() {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
       
       const payload = {
+        packageId: selectedPackageId,
         identityData: {
           name: victimName,
           age: Number(age),
@@ -146,6 +177,25 @@ export function FieldIntakePage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Relief Package to Issue</label>
+                  <select
+                    required
+                    value={selectedPackageId}
+                    onChange={e => setSelectedPackageId(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    {availablePackages.map(pkg => (
+                      <option key={pkg.id} value={pkg.id} disabled={pkg.availableCount === 0}>
+                        {pkg.title} ({pkg.availableCount} Available)
+                      </option>
+                    ))}
+                    {availablePackages.length === 0 && (
+                      <option value="" disabled>No packages found for this NGO</option>
+                    )}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Victim Name</label>
                   <input 
                     type="text" 
@@ -199,7 +249,7 @@ export function FieldIntakePage() {
                 <Button 
                   type="submit" 
                   className="w-full font-semibold mt-6" 
-                  disabled={loading}
+                  disabled={loading || availablePackages.length === 0 || (availablePackages.find(p => p.id === selectedPackageId)?.availableCount === 0)}
                 >
                   {loading ? (
                     <>

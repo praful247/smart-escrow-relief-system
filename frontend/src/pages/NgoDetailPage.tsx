@@ -222,36 +222,82 @@ export function NgoDetailPage() {
   }
 
   return (
-    <div className="max-w-6xl w-full p-8">
-      <Button variant="ghost" onClick={() => navigate('/explore')} className="mb-6 gap-2">
-        <ArrowLeft className="w-4 h-4" /> Back to NGOs
-      </Button>
-
-      <div className="flex items-center gap-6 mb-10 pb-6 border-b border-slate-200 dark:border-slate-800">
-        {ngo.avatarUrl ? (
-          <img src={ngo.avatarUrl} alt={ngo.name} className="w-24 h-24 rounded-full object-cover shadow-sm border" />
-        ) : (
-          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-4xl shadow-sm">
-            {(ngo.organizationName || ngo.name).charAt(0)}
-          </div>
-        )}
-        <div>
-          <h2 className="text-4xl font-bold tracking-tight">{ngo.organizationName || ngo.name}</h2>
-          <div className="flex items-center gap-4 mt-2">
-            <span className="text-sm font-medium px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-slate-600 dark:text-slate-300">
-              Verified NGO
-            </span>
-            <span className="text-sm text-slate-500 font-mono">
-              Reg No: {ngo.registrationNumber || 'N/A'}
-            </span>
-          </div>
+    <div className="w-full">
+      {/* Cover Image */}
+      <div className="w-full h-64 md:h-80 bg-slate-900 relative">
+        <img 
+          src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=2070&auto=format&fit=crop" 
+          alt="NGO Cover" 
+          className="w-full h-full object-cover opacity-60"
+        />
+        <div className="absolute top-8 left-8">
+          <Button variant="secondary" onClick={() => navigate('/explore')} className="gap-2 shadow-lg backdrop-blur-md bg-white/80 dark:bg-slate-900/80 hover:bg-white dark:hover:bg-slate-900">
+            <ArrowLeft className="w-4 h-4" /> Back to Marketplace
+          </Button>
         </div>
       </div>
 
-      <div className="mb-8">
-        <h3 className="text-2xl font-semibold mb-2">Active Relief Packages</h3>
-        <p className="text-muted-foreground">Select a package to fund. Your donation directly aids verified beneficiaries.</p>
-      </div>
+      <div className="max-w-6xl mx-auto w-full px-8 pb-16">
+        {/* NGO Header Profile */}
+        <div className="relative -mt-16 sm:-mt-24 mb-12 flex flex-col sm:flex-row items-center sm:items-end gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+          {ngo.avatarUrl ? (
+            <img src={ngo.avatarUrl} alt={ngo.name} className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-xl border-4 border-white dark:border-slate-950 bg-white" />
+          ) : (
+            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-5xl shadow-xl border-4 border-white dark:border-slate-950">
+              {(ngo.organizationName || ngo.name).charAt(0)}
+            </div>
+          )}
+          <div className="text-center sm:text-left flex-1">
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">{ngo.organizationName || ngo.name}</h2>
+            <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3 mt-3">
+              <span className="text-sm font-semibold px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-500"></span> Verified NGO
+              </span>
+              <span className="text-sm text-slate-600 dark:text-slate-400 font-mono px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
+                Reg No: {ngo.registrationNumber || 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* About Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
+          <div className="col-span-1 md:col-span-2 space-y-6">
+            <h3 className="text-2xl font-bold">About Our Mission</h3>
+            <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg">
+              We are a dedicated non-profit organization focused on providing immediate, transparent, and direct disaster relief to vulnerable communities. With the power of the ClearTrust platform, we guarantee that 100% of your contributions are locked on the blockchain and only released when our verified field workers physically deliver the essential relief packages to those in need.
+            </p>
+            <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg">
+              Join us in rebuilding lives. Explore our active campaigns below and make an impact today.
+            </p>
+          </div>
+          <div className="col-span-1">
+            <Card className="bg-slate-50 dark:bg-slate-900/50 border-none shadow-none">
+              <CardHeader>
+                <CardTitle className="text-lg">Recent Impact</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <span className="text-slate-500">Total Funds Raised</span>
+                  <span className="font-semibold text-primary">₹1,450,000</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <span className="text-slate-500">Families Supported</span>
+                  <span className="font-semibold text-primary">3,200+</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <span className="text-slate-500">Active Volunteers</span>
+                  <span className="font-semibold text-primary">150</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <h3 className="text-3xl font-extrabold mb-2">Active Relief Packages</h3>
+          <p className="text-lg text-muted-foreground">Select a package to fund. Your donation directly aids verified beneficiaries.</p>
+        </div>
 
       {packages.length === 0 ? (
         <Card className="p-8 text-center bg-slate-50 dark:bg-slate-900 border-dashed">
@@ -310,6 +356,7 @@ export function NgoDetailPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }

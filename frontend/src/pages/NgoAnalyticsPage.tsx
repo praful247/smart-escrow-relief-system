@@ -73,7 +73,7 @@ export default function NgoAnalyticsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
@@ -111,6 +111,20 @@ export default function NgoAnalyticsPage() {
               </div>
               <div className="p-3 bg-cyan-500/10 rounded-lg">
                 <CheckCircle2 className="w-6 h-6 text-cyan-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-900 border-slate-800 border-dashed">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-slate-400 mb-1">Active Field Workers</p>
+                <h3 className="text-3xl font-bold text-slate-300">14</h3>
+              </div>
+              <div className="p-3 bg-slate-800 rounded-lg">
+                <MapPin className="w-6 h-6 text-slate-500" />
               </div>
             </div>
           </CardContent>

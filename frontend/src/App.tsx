@@ -61,7 +61,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center">
+      <main className="flex-1 flex flex-col items-center w-full">
         <Routes>
           <Route path="/" element={<LoginPage />} />
           
@@ -128,6 +128,43 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+
+      {/* Global Footer */}
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mt-12 py-12">
+        <div className="max-w-6xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="col-span-1 md:col-span-2">
+            <div className="flex items-center gap-2 text-primary mb-4">
+              <ShieldCheck className="h-6 w-6 text-accent-foreground" />
+              <h2 className="text-xl font-bold tracking-tight">ClearTrust</h2>
+            </div>
+            <p className="text-slate-500 dark:text-slate-400 max-w-sm">
+              A transparent, blockchain-powered disaster relief platform ensuring that every donation reaches verified beneficiaries with zero fraud.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">Platform</h3>
+            <ul className="space-y-2 text-sm text-slate-500 dark:text-slate-400">
+              <li><a href="#" className="hover:text-primary transition-colors">How it works</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">For Donors</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">For NGOs</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Blockchain Transparency</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">Legal</h3>
+            <ul className="space-y-2 text-sm text-slate-500 dark:text-slate-400">
+              <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Vendor Agreement</a></li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto px-8 mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center text-sm text-slate-400">
+          <p>© {new Date().getFullYear()} ClearTrust. All rights reserved.</p>
+          <p className="mt-2 md:mt-0">Powered by Avalanche Network</p>
+        </div>
+      </footer>
+
       <Toaster />
     </div>
   )
