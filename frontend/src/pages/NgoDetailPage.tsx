@@ -5,13 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, ArrowLeft } from 'lucide-react'
 
-// Extended Window interface for Razorpay
-declare global {
-  interface Window {
-    Razorpay: any
-  }
-}
-
+import { useRazorpay } from 'react-razorpay'
 interface AidPackage {
   id: string
   title: string
@@ -41,6 +35,7 @@ export function NgoDetailPage() {
   const [customAmounts, setCustomAmounts] = useState<{ [key: string]: string }>({})
 
   const token = localStorage.getItem('cleartrust_jwt')
+  const { Razorpay } = useRazorpay()
 
   useEffect(() => {
     const fetchNgoDetails = async () => {
@@ -162,8 +157,8 @@ export function NgoDetailPage() {
         }
       }
 
-      if (window.Razorpay) {
-        const rzp = new window.Razorpay(options)
+      if (Razorpay) {
+        const rzp = new Razorpay(options)
         rzp.on('payment.failed', function (response: any) {
           toast({ title: "Payment Failed", description: response.error.description, variant: "destructive" })
         })
