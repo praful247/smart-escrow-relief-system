@@ -4,12 +4,13 @@ import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import Razorpay from 'razorpay';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 import { authenticateJWT } from './middleware/authMiddleware.js';
+import { requireRole } from './middleware/roleMiddleware.js';
 import { db } from './db/index.js';
-import { users, qrVouchers, beneficiaries } from './db/schema.js';
+import { users, qrVouchers, beneficiaries, ngos, disasterZones, aidPackages } from './db/schema.js';
 import { generateSHA256, verifyRazorpaySignature } from './lib/crypto.js';
 
 dotenv.config();
@@ -84,17 +85,28 @@ app.post('/api/auth/google', async (req, res) => {
 // 2. Razorpay Orders
 // ==========================================
 app.post('/api/payment/create-order', authenticateJWT, async (req, res) => {
-  const { packageId, beneficiaryId, amountInInr } = req.body;
-  
-  if (!amountInInr || amountInInr * 100 < 100) {
-    return res.status(400).json({ error: 'Amount must be at least 1 INR (100 paise)' });
-  }
+  const { packageId, beneficiaryId, customAmount } = req.body;
 
   if (!razorpayInstance) return res.status(500).json({ error: 'Razorpay not configured' });
 
   try {
+    // Check the package
+    const pkgResult = await db.select().from(aidPackages).where(eq(aidPackages.id, packageId)).limit(1);
+    if (pkgResult.length === 0) return res.status(404).json({ error: 'Package not found' });
+    
+    const pkg = pkgResult[0];
+    let amountInInr = Number(pkg.priceInInr);
+    
+    if (pkg.isCustomAmountAllowed && customAmount) {
+      amountInInr = Number(customAmount);
+    }
+    
+    if (!amountInInr || amountInInr * 100 < 100) {
+      return res.status(400).json({ error: 'Amount must be at least 1 INR' });
+    }
+
     const options = {
-      amount: amountInInr * 100, // amount in smallest currency unit (paise)
+      amount: Math.round(amountInInr * 100), // amount in smallest currency unit (paise)
       currency: "INR",
       receipt: `receipt_${uuidv4().substring(0, 8)}`,
     };
@@ -216,6 +228,84 @@ app.put('/api/users/profile', authenticateJWT, async (req, res) => {
   } catch (error) {
     console.error('Profile Update Error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// ==========================================
+// 6. NGO Marketplace Endpoints
+// ==========================================
+
+app.get('/api/ngos', async (req, res) => {
+  try {
+    // In a real app, we'd leftJoin disasterZones. For simplicity:
+    const allNgos = await db.select().from(ngos).where(eq(ngos.isVerified, true));
+    res.json({ ngos: allNgos });
+  } catch (error) {
+    console.error('Fetch NGOs Error:', error);
+    res.status(500).json({ error: 'Failed to fetch NGOs' });
+  }
+});
+
+app.get('/api/ngos/:id', async (req, res) => {
+  try {
+    const ngoId = req.params.id;
+    const ngoResult = await db.select().from(ngos).where(eq(ngos.id, ngoId)).limit(1);
+    if (ngoResult.length === 0) return res.status(404).json({ error: 'NGO not found' });
+    
+    const packages = await db.select().from(aidPackages).where(eq(aidPackages.ngoId, ngoId));
+    
+    res.json({ ngo: ngoResult[0], packages });
+  } catch (error) {
+    console.error('Fetch NGO details error:', error);
+    res.status(500).json({ error: 'Failed to fetch NGO details' });
+  }
+});
+
+// ==========================================
+// 7. NGO Package Management
+// ==========================================
+
+app.post('/api/ngo/packages', requireRole('NGO'), async (req, res) => {
+  try {
+    const { title, priceInInr, isCustomAmountAllowed } = req.body;
+    
+    const ngoResult = await db.select().from(ngos).where(eq(ngos.userId, req.user.id)).limit(1);
+    if (ngoResult.length === 0) return res.status(403).json({ error: 'NGO profile not found' });
+    
+    const ngoId = ngoResult[0].id;
+    
+    const inserted = await db.insert(aidPackages).values({
+      ngoId,
+      title,
+      priceInInr,
+      isCustomAmountAllowed: Boolean(isCustomAmountAllowed)
+    }).returning();
+    
+    res.json({ success: true, package: inserted[0] });
+  } catch (error) {
+    console.error('Create Package Error:', error);
+    res.status(500).json({ error: 'Failed to create package' });
+  }
+});
+
+app.delete('/api/ngo/packages/:id', requireRole('NGO'), async (req, res) => {
+  try {
+    const packageId = req.params.id;
+    
+    const ngoResult = await db.select().from(ngos).where(eq(ngos.userId, req.user.id)).limit(1);
+    if (ngoResult.length === 0) return res.status(403).json({ error: 'NGO profile not found' });
+    const ngoId = ngoResult[0].id;
+    
+    const deleted = await db.delete(aidPackages)
+      .where(and(eq(aidPackages.id, packageId), eq(aidPackages.ngoId, ngoId)))
+      .returning();
+      
+    if (deleted.length === 0) return res.status(404).json({ error: 'Package not found or unauthorized' });
+    
+    res.json({ success: true, message: 'Package deleted' });
+  } catch (error) {
+    console.error('Delete Package Error:', error);
+    res.status(500).json({ error: 'Failed to delete package' });
   }
 });
 
