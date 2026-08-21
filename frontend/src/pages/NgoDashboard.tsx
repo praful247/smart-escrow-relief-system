@@ -1,7 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { MapPin } from 'lucide-react'
+import { MapPin, PackagePlus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 export function NgoDashboard() {
+  const navigate = useNavigate()
   return (
     <div className="max-w-6xl w-full p-8">
       <div className="mb-8">
@@ -19,6 +21,23 @@ export function NgoDashboard() {
           <p className="text-sm text-slate-500 mb-6">Onboard beneficiaries with Zero-Trust identity and issue QR vouchers.</p>
           <button className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-emerald-200 bg-transparent text-emerald-600 shadow-sm hover:bg-emerald-50 h-9 px-4 py-2">
             Open Scanner
+          </button>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-lg border-slate-200 dark:border-slate-800">
+        <CardHeader>
+          <PackagePlus className="h-10 w-10 text-primary mb-2" />
+          <CardTitle>Manage Packages</CardTitle>
+          <CardDescription>Create and publish relief packages</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-500 mb-6">Create customizable aid packages for the donor marketplace.</p>
+          <button 
+            onClick={() => navigate('/ngo/packages')}
+            className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
+          >
+            Go to Packages
           </button>
         </CardContent>
       </Card>

@@ -7,7 +7,9 @@ import { LogOut, ShieldCheck } from 'lucide-react'
 
 import { LoginPage } from './pages/LoginPage'
 import { CompleteProfilePage } from './pages/CompleteProfilePage'
-import { DonatePage } from './components/DonatePage'
+import { ExploreNgosPage } from './pages/ExploreNgosPage'
+import { NgoDetailPage } from './pages/NgoDetailPage'
+import { NgoDashboardPackages } from './pages/NgoDashboardPackages'
 import { NgoDashboard } from './pages/NgoDashboard'
 import { VendorPos } from './pages/VendorPos'
 
@@ -67,17 +69,25 @@ export default function App() {
           
           <Route path="/explore" element={
             <ProtectedRoute>
-              <div className="w-full max-w-6xl p-8">
-                <DonatePage 
-                  token={localStorage.getItem('cleartrust_jwt')} 
-                />
-              </div>
+              <ExploreNgosPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/ngo/:id" element={
+            <ProtectedRoute>
+              <NgoDetailPage />
             </ProtectedRoute>
           } />
           
           <Route path="/ngo/dashboard" element={
             <ProtectedRoute>
               <NgoDashboard />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/ngo/packages" element={
+            <ProtectedRoute>
+              <NgoDashboardPackages />
             </ProtectedRoute>
           } />
           
