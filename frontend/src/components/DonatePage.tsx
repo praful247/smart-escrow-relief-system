@@ -117,6 +117,15 @@ export function DonatePage({ token }: DonatePageProps) {
         },
         theme: {
           color: "#0f172a" // slate-900
+        },
+        modal: {
+          ondismiss: function() {
+            toast({
+              title: "Payment Cancelled",
+              description: "You closed the payment window.",
+              variant: "destructive"
+            });
+          }
         }
       }
 
